@@ -60,13 +60,13 @@ class TypingMaze {
       y: y * this.cellSize,
     };
 
-    const viewBox = {
-      x: 0,
-      y: 0,
-    };
-    viewBox.x = canvas.height / 2;
+    const startX = (this.canvas.width - this.cellSize) / 2;
+    const startY = (this.canvas.height - this.cellSize) / 2;
 
-    console.log(position);
+    this.viewBox.x = startX;
+    this.viewBox.y = startY;
+
+    console.log(this.viewBox);
   }
   listener() {
     const eventMap = {
