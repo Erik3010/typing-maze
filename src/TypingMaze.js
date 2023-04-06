@@ -1,4 +1,5 @@
 import Player from "./Player";
+import Cell from "./Cell";
 
 class TypingMaze {
   constructor({ canvas }) {
@@ -19,6 +20,8 @@ class TypingMaze {
       [1, 1, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 1, 0, 1],
       [1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1],
     ];
+    this.cells = [];
+    this.extenderCells = [];
     // this.cellSize = this.canvas.width / this.maps[0].length;
     this.cellSize = 100;
     this.cellPadding = 5;
@@ -36,6 +39,15 @@ class TypingMaze {
     };
 
     this.player = null;
+
+    this.directions = [
+      [1, 0],
+      [-1, 0],
+      [0, 1],
+      [0, -1],
+    ];
+
+    this.isAnimating = false;
   }
   init() {
     console.log("init");
@@ -67,41 +79,157 @@ class TypingMaze {
     this.viewBox.y = startY;
 
     console.log(this.viewBox);
+    this.initViewBoxMap();
   }
   listener() {
     const eventMap = {
-      ArrowUp: { axis: "y", direction: -1 },
-      ArrowDown: { axis: "y", direction: 1 },
-      ArrowLeft: { axis: "x", direction: -1 },
-      ArrowRight: { axis: "x", direction: 1 },
+      ArrowUp: { x: 0, y: -1 },
+      ArrowDown: { x: 0, y: 1 },
+      ArrowLeft: { x: -1, y: 0 },
+      ArrowRight: { x: 1, y: 0 },
     };
-    window.addEventListener("keydown", (event) => {
-      if (!Object.keys(eventMap).includes(event.code)) return;
+    window.addEventListener("keydown", async (event) => {
+      if (!Object.keys(eventMap).includes(event.code) || this.isAnimating)
+        return;
+
       this.player.move(eventMap[event.code]);
+      await this.moveViewBoxMap(eventMap[event.code]);
     });
   }
   draw() {
     this.drawMap();
     this.player.draw();
   }
-  drawMap() {
-    for (const [y, row] of this.maps.entries()) {
-      for (const [x, col] of row.entries()) {
-        this.ctx.beginPath();
-        this.ctx.fillStyle = col === this.wall ? "#ffba00" : "#fff3d2";
-        this.ctx.strokeStyle = "#000";
+  initViewBoxMap() {
+    const { x: centerX, y: centerY } = this.centerPoint;
+    const blockToRender = this.blockToRender;
 
-        this.ctx.rect(
-          x * this.cellSize,
-          y * this.cellSize,
-          this.cellSize,
-          this.cellSize
+    // this.cells = [];
+    const data = [];
+    for (let y = blockToRender.y * 2 + 1; y > 0; y--) {
+      const row = [];
+      const prevY = this.player.y - (blockToRender.y - y) - 1;
+
+      if (prevY < 0 || prevY > this.maps.length - 1) continue;
+      for (let x = blockToRender.x * 2 + 1; x > 0; x--) {
+        const prevX = this.player.x - (blockToRender.x - x) - 1;
+        if (prevX < 0 || prevX > this.maps[0].length - 1) continue;
+
+        const col = new Cell({
+          ctx: this.ctx,
+          width: this.cellSize,
+          maps: this.maps,
+          x: centerX - this.cellSize * (blockToRender.x - x + 1),
+          y: centerY - this.cellSize * (blockToRender.y - y + 1),
+          color: this.maps[prevY][prevX] === this.wall ? "#ffba00" : "#fff3d2",
+        });
+        row.push(col);
+      }
+      this.cells.push(row);
+      data.push(row);
+    }
+    console.log(this.cells);
+    // console.log(data);
+  }
+  async moveViewBoxMap({ x: targetX, y: targetY }) {
+    this.isAnimating = true;
+
+    const animationQueue = [];
+
+    const { x: centerX, y: centerY } = this.centerPoint;
+    const blockToRender = this.blockToRender;
+
+    for (let y = 0; y < blockToRender.y * 2 + 1; y++) {
+      if (targetY !== 0 && !this.extenderCells.length) {
+        const nextY = this.player.y + this.blockToRender.y * targetY;
+        const row = [];
+        for (let x = 0; x < blockToRender.x * 2 + 1; x++) {
+          const nextX = this.blockToRender.x - x;
+          const cell = new Cell({
+            ctx: this.ctx,
+            x: centerX + (blockToRender.x - x) * this.cellSize,
+            y: centerY + blockToRender.y * this.cellSize * targetY,
+            width: this.cellSize,
+            color:
+              this.maps[nextY][this.player.x + nextX] === this.wall
+                ? "#ffba00"
+                : "#fff3d2",
+          });
+
+          row.push(cell);
+        }
+        this.extenderCells.push(row);
+      }
+
+      for (let x = 0; x < blockToRender.x * 2 + 1; x++) {
+        // this.cells[y][x].move({ x: targetX * -1, y: targetY * -1 });
+        animationQueue.push(
+          this.cells[y][x].move({ x: targetX * -1, y: targetY * -1 })
         );
-        this.ctx.stroke();
-        this.ctx.fill();
-        this.ctx.closePath();
       }
     }
+
+    await Promise.all(animationQueue);
+    this.isAnimating = false;
+
+    if (targetY !== 0) {
+      if (targetY === 1) {
+        this.maps.splice(0, 1);
+        this.cells.push(...this.extenderCells);
+      } else {
+        this.maps.splice(this.maps.length - 1, 1);
+        this.cells.unshift(...this.extenderCells);
+      }
+    }
+
+    console.log(this.cells);
+    this.extenderCells = [];
+  }
+  drawMap() {
+    for (const row of this.extenderCells) {
+      for (const cell of row) {
+        cell.draw();
+      }
+    }
+
+    for (const row of this.cells) {
+      for (const cell of row) {
+        cell.draw();
+      }
+    }
+
+    const { x: centerX, y: centerY } = this.centerPoint;
+    this.ctx.fillStyle = "#ff0000";
+    this.ctx.fillRect(centerX, centerY, this.cellSize, this.cellSize);
+
+    // for (const [y, row] of this.maps.entries()) {
+    //   for (const [x, col] of row.entries()) {
+    //     this.ctx.beginPath();
+    //     this.ctx.fillStyle = col === this.wall ? "#ffba00" : "#fff3d2";
+    //     this.ctx.strokeStyle = "#000";
+    //     this.ctx.rect(
+    //       x * this.cellSize,
+    //       y * this.cellSize,
+    //       this.cellSize,
+    //       this.cellSize
+    //     );
+    //     this.ctx.stroke();
+    //     this.ctx.fill();
+    //     this.ctx.closePath();
+    //   }
+    // }
+  }
+  get centerPoint() {
+    return {
+      x: this.canvas.width / 2 - this.cellSize / 2,
+      y: this.canvas.height / 2 - this.cellSize / 2,
+    };
+  }
+  get blockToRender() {
+    return {
+      x: Math.ceil(this.viewBox.x / this.cellSize),
+      y: Math.ceil(this.viewBox.y / this.cellSize),
+    };
   }
   render() {
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);

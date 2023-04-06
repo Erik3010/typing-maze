@@ -7,18 +7,20 @@ class Player {
     this.width = width;
   }
   draw() {
-    this.ctx.beginPath();
-    this.ctx.fillStyle = "#ff0000";
-    this.ctx.fillRect(
-      this.x * this.width,
-      this.y * this.width,
-      this.width,
-      this.width
-    );
-    this.ctx.closePath();
+    // this.ctx.beginPath();
+    // this.ctx.fillStyle = "#ff0000";
+    // this.ctx.fillRect(
+    //   this.x * this.width,
+    //   this.y * this.width,
+    //   this.width,
+    //   this.width
+    // );
+    // this.ctx.closePath();
   }
-  move({ axis, direction }) {
-    this[axis] += direction;
+  move({ x, y }) {
+    this.x += x;
+    this.y += y;
+    // this[axis] += direction;
   }
 }
 
