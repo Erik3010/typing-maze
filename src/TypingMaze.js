@@ -105,30 +105,49 @@ class TypingMaze {
     const blockToRender = this.blockToRender;
 
     // this.cells = [];
-    const data = [];
-    for (let y = blockToRender.y * 2 + 1; y > 0; y--) {
+    // const data = [];
+    // for (let y = blockToRender.y * 2 + 1; y > 0; y--) {
+    //   const row = [];
+    //   const prevY = this.player.y - (blockToRender.y - y) - 1;
+
+    //   if (prevY < 0 || prevY > this.maps.length - 1) continue;
+    //   for (let x = blockToRender.x * 2 + 1; x > 0; x--) {
+    //     const prevX = this.player.x - (blockToRender.x - x) - 1;
+    //     if (prevX < 0 || prevX > this.maps[0].length - 1) continue;
+
+    //     const col = new Cell({
+    //       ctx: this.ctx,
+    //       width: this.cellSize,
+    //       x: centerX - this.cellSize * (blockToRender.x - x + 1),
+    //       y: centerY - this.cellSize * (blockToRender.y - y + 1),
+    //       value: this.maps[prevY][prevX],
+    //       color: this.maps[prevY][prevX] === this.wall ? "#ffba00" : "#fff3d2",
+    //     });
+    //     row.push(col);
+    //   }
+    //   this.cells.push(row);
+    //   data.push(row);
+    // }
+
+    for (let y = 0; y < blockToRender.y * 2 + 1; y++) {
       const row = [];
-      const prevY = this.player.y - (blockToRender.y - y) - 1;
-
-      if (prevY < 0 || prevY > this.maps.length - 1) continue;
-      for (let x = blockToRender.x * 2 + 1; x > 0; x--) {
-        const prevX = this.player.x - (blockToRender.x - x) - 1;
-        if (prevX < 0 || prevX > this.maps[0].length - 1) continue;
-
-        const col = new Cell({
+      const nextY = this.player.y - (blockToRender.y - y);
+      for (let x = 0; x < blockToRender.x * 2 + 1; x++) {
+        const nextX = this.player.x - (blockToRender.x - x);
+        const cell = new Cell({
           ctx: this.ctx,
           width: this.cellSize,
-          maps: this.maps,
-          x: centerX - this.cellSize * (blockToRender.x - x + 1),
-          y: centerY - this.cellSize * (blockToRender.y - y + 1),
-          value: this.maps[prevY][prevX],
-          color: this.maps[prevY][prevX] === this.wall ? "#ffba00" : "#fff3d2",
+          x: centerX + (x - blockToRender.x) * this.cellSize,
+          y: centerY + (y - blockToRender.y) * this.cellSize,
+          value: this.maps[nextY][nextX],
+          color: this.maps[nextY][nextX] === this.wall ? "#ffba00" : "#fff3d2",
         });
-        row.push(col);
+
+        row.push(cell);
       }
       this.cells.push(row);
-      data.push(row);
     }
+
     // console.log(this.cells);
     console.log(this.cells.map((row) => row.map((cell) => cell.value)));
     // console.log(data);
@@ -149,12 +168,12 @@ class TypingMaze {
           const nextX = this.blockToRender.x - x;
           const cell = new Cell({
             ctx: this.ctx,
-            x: centerX + (blockToRender.x - x) * this.cellSize,
+            x: centerX + (x - blockToRender.x) * this.cellSize,
             y: centerY + blockToRender.y * this.cellSize * targetY,
             width: this.cellSize,
-            value: this.maps[nextY][this.player.x + nextX],
+            value: this.maps[nextY][this.player.x - nextX],
             color:
-              this.maps[nextY][this.player.x + nextX] === this.wall
+              this.maps[nextY][this.player.x - nextX] === this.wall
                 ? "#ffba00"
                 : "#fff3d2",
           });
@@ -165,6 +184,27 @@ class TypingMaze {
       }
 
       for (let x = 0; x < blockToRender.x * 2 + 1; x++) {
+        if (targetX !== 0 && !this.extenderCells.length) {
+          const row = [];
+          // const nextX = this.player.x + (this.blockToRender.x - x) * targetX;
+          const nextX = this.player.x + blockToRender.x * targetX;
+
+          for (let tempY = 0; tempY < blockToRender.y * 2 + 1; tempY++) {
+            const dY = this.player.y - (blockToRender.y - tempY);
+
+            const cell = new Cell({
+              ctx: this.ctx,
+              x: centerX + blockToRender.x * targetX * this.cellSize,
+              y: centerY + (tempY - blockToRender.y) * this.cellSize,
+              width: this.cellSize,
+              value: this.maps[dY][nextX],
+              color: this.maps[dY][nextX] === this.wall ? "#ffba00" : "#fff3d2",
+            });
+            row.push(cell);
+          }
+          this.extenderCells.push(row);
+        }
+
         // this.cells[y][x].move({ x: targetX * -1, y: targetY * -1 });
         animationQueue.push(
           this.cells[y][x].move({ x: targetX * -1, y: targetY * -1 })
@@ -177,17 +217,28 @@ class TypingMaze {
 
     if (targetY !== 0) {
       if (targetY === 1) {
-        // this.cells.splice(0, 1);
-        this.cells.pop();
+        this.cells.shift();
         this.cells.push(...this.extenderCells);
       } else {
-        // this.cells.splice(this.maps.length - 1, 1);
-        this.cells.shift();
+        this.cells.pop();
         this.cells.unshift(...this.extenderCells);
+      }
+    } else if (targetX !== 0) {
+      for (const [index, row] of this.cells.entries()) {
+        if (targetX === 1) {
+          row.shift();
+          row.push(this.extenderCells[0][index]);
+        } else {
+          row.pop();
+          row.unshift(this.extenderCells[0][index]);
+        }
       }
     }
 
+    // console.log(JSON.parse(JSON.stringify(this.extenderCells)));
+
     console.log(this.cells.map((row) => row.map((cell) => cell.value)));
+    console.log(JSON.parse(JSON.stringify(this.cells)));
     this.extenderCells = [];
   }
   drawMap() {
