@@ -121,6 +121,7 @@ class TypingMaze {
           maps: this.maps,
           x: centerX - this.cellSize * (blockToRender.x - x + 1),
           y: centerY - this.cellSize * (blockToRender.y - y + 1),
+          value: this.maps[prevY][prevX],
           color: this.maps[prevY][prevX] === this.wall ? "#ffba00" : "#fff3d2",
         });
         row.push(col);
@@ -128,7 +129,8 @@ class TypingMaze {
       this.cells.push(row);
       data.push(row);
     }
-    console.log(this.cells);
+    // console.log(this.cells);
+    console.log(this.cells.map((row) => row.map((cell) => cell.value)));
     // console.log(data);
   }
   async moveViewBoxMap({ x: targetX, y: targetY }) {
@@ -150,6 +152,7 @@ class TypingMaze {
             x: centerX + (blockToRender.x - x) * this.cellSize,
             y: centerY + blockToRender.y * this.cellSize * targetY,
             width: this.cellSize,
+            value: this.maps[nextY][this.player.x + nextX],
             color:
               this.maps[nextY][this.player.x + nextX] === this.wall
                 ? "#ffba00"
@@ -174,15 +177,17 @@ class TypingMaze {
 
     if (targetY !== 0) {
       if (targetY === 1) {
-        this.maps.splice(0, 1);
+        // this.cells.splice(0, 1);
+        this.cells.pop();
         this.cells.push(...this.extenderCells);
       } else {
-        this.maps.splice(this.maps.length - 1, 1);
+        // this.cells.splice(this.maps.length - 1, 1);
+        this.cells.shift();
         this.cells.unshift(...this.extenderCells);
       }
     }
 
-    console.log(this.cells);
+    console.log(this.cells.map((row) => row.map((cell) => cell.value)));
     this.extenderCells = [];
   }
   drawMap() {

@@ -1,12 +1,13 @@
 import { easeAnimation } from "./utility";
 
 class Cell {
-  constructor({ ctx, x, y, width, color }) {
+  constructor({ ctx, x, y, width, color, value }) {
     this.ctx = ctx;
     this.x = x;
     this.y = y;
     this.width = width;
     this.color = color;
+    this.value = value;
 
     this.currentFrame = 0;
     this.step = 12;
