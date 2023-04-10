@@ -60,12 +60,6 @@ class TypingMaze {
     this.render();
   }
   setViewBox() {
-    const { x, y } = this.player;
-    const position = {
-      x: x * this.cellSize,
-      y: y * this.cellSize,
-    };
-
     const startX = (this.canvas.width - this.cellSize) / 2;
     const startY = (this.canvas.height - this.cellSize) / 2;
 
@@ -94,17 +88,30 @@ class TypingMaze {
       const isYAxisExceed = nextY < 0 || nextY > this.maps.length - 1;
       const isXAxisExceed = nextX < 0 || nextX > this.maps[0].length - 1;
 
-      const needChangePosition = isYAxisExceed || !this.player.isCenter;
+      const needChangePosition =
+        isYAxisExceed || isXAxisExceed || !this.player.isCenter;
       let position = null;
 
-      if (needChangePosition) {
-        position = { x: 0, y: this.cellSize * dirY };
+      // if (needChangePosition) {
+      if (
+        (isYAxisExceed && dirY !== 0) ||
+        (!this.player.isCenterY && dirY !== 0) ||
+        isXAxisExceed & (dirX !== 0) ||
+        (!this.player.isCenterX && dirX !== 0)
+      ) {
+        position = { x: this.cellSize * dirX, y: this.cellSize * dirY };
       }
 
       this.isAnimating = true;
 
       await this.player.move(eventMap[event.code], position);
-      if (!needChangePosition || dirY === 0) {
+
+      // if (!needChangePosition || dirY === 0) {
+      // if ((!isYAxisExceed || dirY === 0) && (!isXAxisExceed || dirX === 0)) {
+
+      // if (!needChangePosition || (needChangePosition && dirY === 0)) {
+      // if (!isYAxisExceed && dirY !== 0) {
+      if (!position) {
         await this.moveViewBoxMap(eventMap[event.code]);
       }
 
@@ -179,22 +186,21 @@ class TypingMaze {
 
     for (let y = 0; y < blockToRender.y * 2 + 1; y++) {
       const nextY = this.player.y + this.blockToRender.y * targetY;
-      // if (nextY < 0 || nextY > this.maps.length - 1) {
-      //   continue;
-      // }
-
       if (targetY !== 0 && !this.extenderCells.length) {
         const row = [];
         for (let x = 0; x < blockToRender.x * 2 + 1; x++) {
+          const exceedTolerance =
+            (this.player.distanceToCenter.x / this.cellSize) * -1;
           const nextX = this.blockToRender.x - x;
           const cell = new Cell({
             ctx: this.ctx,
             x: centerX + (x - blockToRender.x) * this.cellSize,
             y: centerY + blockToRender.y * this.cellSize * targetY,
             width: this.cellSize,
-            value: this.maps[nextY][this.player.x - nextX],
+            value: this.maps[nextY][this.player.x + exceedTolerance - nextX],
             color:
-              this.maps[nextY][this.player.x - nextX] === this.wall
+              this.maps[nextY][this.player.x + exceedTolerance - nextX] ===
+              this.wall
                 ? "#ffba00"
                 : "#fff3d2",
           });
