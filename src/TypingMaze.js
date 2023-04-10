@@ -41,6 +41,8 @@ class TypingMaze {
     this.player = null;
 
     this.isAnimating = false;
+
+    this.overflowedView = { x: 0, y: 0 };
   }
   init() {
     console.log("init");
@@ -88,34 +90,56 @@ class TypingMaze {
       const isYAxisExceed = nextY < 0 || nextY > this.maps.length - 1;
       const isXAxisExceed = nextX < 0 || nextX > this.maps[0].length - 1;
 
-      const needChangePosition =
-        isYAxisExceed || isXAxisExceed || !this.player.isCenter;
+      // const needChangePosition =
+      //   isYAxisExceed || isXAxisExceed || !this.player.isCenter;
       let position = null;
-
-      // if (needChangePosition) {
-      if (
+      const needChangePosition =
         (isYAxisExceed && dirY !== 0) ||
         (!this.player.isCenterY && dirY !== 0) ||
         isXAxisExceed & (dirX !== 0) ||
-        (!this.player.isCenterX && dirX !== 0)
-      ) {
+        (!this.player.isCenterX && dirX !== 0);
+
+      if (needChangePosition) {
         position = { x: this.cellSize * dirX, y: this.cellSize * dirY };
       }
 
+      // if (
+      //   this.getViewBoxRemainder.y &&
+      //   isYAxisExceed &&
+      //   dirY !== 0 &&
+      //   this.overflowedView.y !== this.getViewBoxRemainder.y * dirY
+      // ) {
+      //   this.overflowedView.y += this.getViewBoxRemainder.y * dirY;
+      //   this.player.centerCoordinate += this.getViewBoxRemainder.y * dirY * -1;
+      //   position.y += this.getViewBoxRemainder.y * dirY * -1;
+      //   await this.moveMapOverflow();
+      //   // console.log(this.cellSize * dirY, this.getViewBoxRemainder.y * dirY);
+      //   // console.log(this.overflowedView);
+      //   // this.moveMapOverflow();
+      // }
       this.isAnimating = true;
 
       await this.player.move(eventMap[event.code], position);
-
-      // if (!needChangePosition || dirY === 0) {
-      // if ((!isYAxisExceed || dirY === 0) && (!isXAxisExceed || dirX === 0)) {
-
-      // if (!needChangePosition || (needChangePosition && dirY === 0)) {
-      // if (!isYAxisExceed && dirY !== 0) {
-      if (!position) {
+      if (!needChangePosition) {
+        // if (this.overflowedView.y && dirY !== 0) {
+        //   this.player.centerCoordinate +=
+        //     this.getViewBoxRemainder.y * dirY * -1;
+        //   await this.moveMapOverflow(true);
+        //   await this.player.animate({
+        //     x: this.player.position.x,
+        //     y: this.player.position.y + this.getViewBoxRemainder.y * dirY * -1,
+        //   });
+        //   this.overflowedView.y += this.getViewBoxRemainder.y * dirY;
+        //   // this.player.position.y += this.getViewBoxRemainder.y * dirY * -1;
+        // }
         await this.moveViewBoxMap(eventMap[event.code]);
       }
 
+      // console.log(this.overflowedView, this.player.centerCoordinate);
+
       this.isAnimating = false;
+
+      // console.log(JSON.parse(JSON.stringify(this.cells)));
     });
   }
   draw() {
@@ -272,6 +296,29 @@ class TypingMaze {
     // console.log(JSON.parse(JSON.stringify(this.cells)));
     this.extenderCells = [];
   }
+  async moveMapOverflow(isRevert = false) {
+    const animationQueue = [];
+    // console.log(this.overflowedView.y * (isRevert ? -1 : 1) * -1);
+
+    for (const row of this.cells) {
+      for (const cell of row) {
+        animationQueue.push(
+          cell.move({
+            x:
+              (this.overflowedView.x * (isRevert ? -1 : 1) * -1) /
+              this.cellSize,
+            y:
+              (this.overflowedView.y * (isRevert ? -1 : 1) * -1) /
+              this.cellSize,
+          })
+        );
+      }
+    }
+
+    await Promise.all(animationQueue);
+
+    // console.log(this.overflowedView);
+  }
   drawMap() {
     for (const row of this.extenderCells) {
       for (const cell of row) {
@@ -316,6 +363,18 @@ class TypingMaze {
     return {
       x: Math.ceil(this.viewBox.x / this.cellSize),
       y: Math.ceil(this.viewBox.y / this.cellSize),
+    };
+  }
+  get getViewBoxRemainder() {
+    return {
+      x:
+        this.viewBox.x % this.cellSize
+          ? this.cellSize - (this.viewBox.x % this.cellSize)
+          : 0,
+      y:
+        this.viewBox.y % this.cellSize
+          ? this.cellSize - (this.viewBox.x % this.cellSize)
+          : 0,
     };
   }
   render() {

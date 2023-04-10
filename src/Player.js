@@ -11,15 +11,16 @@ class Player {
     this.width = width;
 
     this.distanceToCenter = { x: 0, y: 0 };
+    this.centerCoordinate = 0;
 
     this.currentFrame = 0;
     this.step = 12;
   }
   get isCenterX() {
-    return this.distanceToCenter.x === 0;
+    return this.distanceToCenter.x === this.centerCoordinate;
   }
   get isCenterY() {
-    return this.distanceToCenter.y === 0;
+    return this.distanceToCenter.y === this.centerCoordinate;
   }
   get isCenter() {
     return this.isCenterX && this.isCenterY;
