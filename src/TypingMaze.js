@@ -40,13 +40,6 @@ class TypingMaze {
 
     this.player = null;
 
-    this.directions = [
-      [1, 0],
-      [-1, 0],
-      [0, 1],
-      [0, -1],
-    ];
-
     this.isAnimating = false;
   }
   init() {
@@ -57,6 +50,7 @@ class TypingMaze {
       ctx: this.ctx,
       x: x,
       y: y,
+      position: this.centerPoint,
       width: this.cellSize,
     });
     this.setViewBox();
@@ -92,8 +86,29 @@ class TypingMaze {
       if (!Object.keys(eventMap).includes(event.code) || this.isAnimating)
         return;
 
-      this.player.move(eventMap[event.code]);
-      await this.moveViewBoxMap(eventMap[event.code]);
+      const { x: dirX, y: dirY } = eventMap[event.code];
+      const nextX = this.player.x + dirX + this.blockToRender.x * dirX;
+      const nextY = this.player.y + dirY + this.blockToRender.y * dirY;
+      // console.log(nextY);
+
+      const isYAxisExceed = nextY < 0 || nextY > this.maps.length - 1;
+      const isXAxisExceed = nextX < 0 || nextX > this.maps[0].length - 1;
+
+      const needChangePosition = isYAxisExceed || !this.player.isCenter;
+      let position = null;
+
+      if (needChangePosition) {
+        position = { x: 0, y: this.cellSize * dirY };
+      }
+
+      this.isAnimating = true;
+
+      await this.player.move(eventMap[event.code], position);
+      if (!needChangePosition || dirY === 0) {
+        await this.moveViewBoxMap(eventMap[event.code]);
+      }
+
+      this.isAnimating = false;
     });
   }
   draw() {
@@ -150,10 +165,12 @@ class TypingMaze {
 
     // console.log(this.cells);
     console.log(this.cells.map((row) => row.map((cell) => cell.value)));
+    console.log(JSON.parse(JSON.stringify(this.cells)));
     // console.log(data);
   }
   async moveViewBoxMap({ x: targetX, y: targetY }) {
-    this.isAnimating = true;
+    // this.isAnimating = true;
+    let skipRender = false;
 
     const animationQueue = [];
 
@@ -161,8 +178,12 @@ class TypingMaze {
     const blockToRender = this.blockToRender;
 
     for (let y = 0; y < blockToRender.y * 2 + 1; y++) {
+      const nextY = this.player.y + this.blockToRender.y * targetY;
+      // if (nextY < 0 || nextY > this.maps.length - 1) {
+      //   continue;
+      // }
+
       if (targetY !== 0 && !this.extenderCells.length) {
-        const nextY = this.player.y + this.blockToRender.y * targetY;
         const row = [];
         for (let x = 0; x < blockToRender.x * 2 + 1; x++) {
           const nextX = this.blockToRender.x - x;
@@ -190,7 +211,11 @@ class TypingMaze {
           const nextX = this.player.x + blockToRender.x * targetX;
 
           for (let tempY = 0; tempY < blockToRender.y * 2 + 1; tempY++) {
-            const dY = this.player.y - (blockToRender.y - tempY);
+            const exceedTolerance =
+              (this.player.distanceToCenter.y / this.cellSize) * -1;
+            // console.log(exceedTolerance);
+            const dY =
+              this.player.y + exceedTolerance - (blockToRender.y - tempY);
 
             const cell = new Cell({
               ctx: this.ctx,
@@ -213,7 +238,7 @@ class TypingMaze {
     }
 
     await Promise.all(animationQueue);
-    this.isAnimating = false;
+    // this.isAnimating = false;
 
     if (targetY !== 0) {
       if (targetY === 1) {
@@ -237,8 +262,8 @@ class TypingMaze {
 
     // console.log(JSON.parse(JSON.stringify(this.extenderCells)));
 
-    console.log(this.cells.map((row) => row.map((cell) => cell.value)));
-    console.log(JSON.parse(JSON.stringify(this.cells)));
+    // console.log(this.cells.map((row) => row.map((cell) => cell.value)));
+    // console.log(JSON.parse(JSON.stringify(this.cells)));
     this.extenderCells = [];
   }
   drawMap() {
@@ -254,9 +279,9 @@ class TypingMaze {
       }
     }
 
-    const { x: centerX, y: centerY } = this.centerPoint;
-    this.ctx.fillStyle = "#ff0000";
-    this.ctx.fillRect(centerX, centerY, this.cellSize, this.cellSize);
+    // const { x: centerX, y: centerY } = this.centerPoint;
+    // this.ctx.fillStyle = "#ff0000";
+    // this.ctx.fillRect(centerX, centerY, this.cellSize, this.cellSize);
 
     // for (const [y, row] of this.maps.entries()) {
     //   for (const [x, col] of row.entries()) {
