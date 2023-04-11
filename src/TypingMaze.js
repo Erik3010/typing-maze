@@ -96,7 +96,7 @@ class TypingMaze {
       const needChangePosition =
         (isYAxisExceed && dirY !== 0) ||
         (!this.player.isCenterY && dirY !== 0) ||
-        isXAxisExceed & (dirX !== 0) ||
+        (isXAxisExceed && dirX !== 0) ||
         (!this.player.isCenterX && dirX !== 0);
 
       if (needChangePosition) {
@@ -107,19 +107,33 @@ class TypingMaze {
       //   this.getViewBoxRemainder.y &&
       //   isYAxisExceed &&
       //   dirY !== 0 &&
-      //   this.overflowedView.y !== this.getViewBoxRemainder.y * dirY
+      //   this.overflowedView.y !== this.getViewBoxRemainder.y * dirY * -1
       // ) {
-      //   this.overflowedView.y += this.getViewBoxRemainder.y * dirY;
-      //   this.player.centerCoordinate += this.getViewBoxRemainder.y * dirY * -1;
+      //   this.overflowedView.y += this.getViewBoxRemainder.y * dirY * -1;
+      //   this.player.centerCoordinate += this.getViewBoxRemainder.y * dirY;
+      //   // console.log(this.player, this.player.centerCoordinate);
       //   position.y += this.getViewBoxRemainder.y * dirY * -1;
       //   await this.moveMapOverflow();
       //   // console.log(this.cellSize * dirY, this.getViewBoxRemainder.y * dirY);
       //   // console.log(this.overflowedView);
       //   // this.moveMapOverflow();
       // }
+
+      // if (!needChangePosition && this.overflowedView.y && dirY !== 0) {
+      //   await this.moveMapOverflow(true);
+      //   this.player.centerCoordinate += this.getViewBoxRemainder.y * dirY;
+      //   this.overflowedView.y += this.getViewBoxRemainder.y * dirY;
+
+      //   await this.player.animate({
+      //     x: this.player.position.x,
+      //     y: this.player.position.y + this.getViewBoxRemainder.y * dirY * -1,
+      //   });
+      // }
+
       this.isAnimating = true;
 
       await this.player.move(eventMap[event.code], position);
+      console.log(this.player.isCenterY);
       if (!needChangePosition) {
         // if (this.overflowedView.y && dirY !== 0) {
         //   this.player.centerCoordinate +=
@@ -138,6 +152,8 @@ class TypingMaze {
       // console.log(this.overflowedView, this.player.centerCoordinate);
 
       this.isAnimating = false;
+      // console.log(this.player.distanceToCenter);
+      // console.log(this.player.isCenterY, this.player.distanceToCenter.y);
 
       // console.log(JSON.parse(JSON.stringify(this.cells)));
     });
@@ -304,12 +320,8 @@ class TypingMaze {
       for (const cell of row) {
         animationQueue.push(
           cell.move({
-            x:
-              (this.overflowedView.x * (isRevert ? -1 : 1) * -1) /
-              this.cellSize,
-            y:
-              (this.overflowedView.y * (isRevert ? -1 : 1) * -1) /
-              this.cellSize,
+            x: (this.overflowedView.x * (isRevert ? -1 : 1)) / this.cellSize,
+            y: (this.overflowedView.y * (isRevert ? -1 : 1)) / this.cellSize,
           })
         );
       }
