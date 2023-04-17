@@ -133,7 +133,6 @@ class TypingMaze {
       this.isAnimating = true;
 
       await this.player.move(eventMap[event.code], position);
-      console.log(this.player.isCenterY);
       if (!needChangePosition) {
         // if (this.overflowedView.y && dirY !== 0) {
         //   this.player.centerCoordinate +=
