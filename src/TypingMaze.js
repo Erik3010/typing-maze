@@ -11,6 +11,8 @@ class TypingMaze {
 
     this.maps = [
       [1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+      [1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+      [1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
       [1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0],
       [1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0],
       [1, 0, 1, 0, 0, 0, 1, 0, 1, 1, 1, 0, 1, 1, 1],
@@ -103,20 +105,38 @@ class TypingMaze {
         position = { x: this.cellSize * dirX, y: this.cellSize * dirY };
       }
 
+      if (
+        needChangePosition &&
+        dirY !== 0 &&
+        Math.abs(this.overflowedView.y) !== this.getViewBoxRemainder.y
+      ) {
+        this.overflowedView.y += this.getViewBoxRemainder.y * dirY;
+        console.log(this.overflowedView.y);
+      }
+
+      if (!needChangePosition && dirY !== 0 && this.overflowedView.y) {
+        this.overflowedView.y = 0;
+      }
+
       // if (
       //   this.getViewBoxRemainder.y &&
       //   isYAxisExceed &&
       //   dirY !== 0 &&
       //   this.overflowedView.y !== this.getViewBoxRemainder.y * dirY * -1
       // ) {
+      //   console.log("-----");
+      //   console.log("before: ", this.overflowedView.y);
       //   this.overflowedView.y += this.getViewBoxRemainder.y * dirY * -1;
-      //   this.player.centerCoordinate += this.getViewBoxRemainder.y * dirY;
-      //   // console.log(this.player, this.player.centerCoordinate);
-      //   position.y += this.getViewBoxRemainder.y * dirY * -1;
-      //   await this.moveMapOverflow();
-      //   // console.log(this.cellSize * dirY, this.getViewBoxRemainder.y * dirY);
-      //   // console.log(this.overflowedView);
-      //   // this.moveMapOverflow();
+      //   console.log("after: ", this.overflowedView.y);
+      //   console.log("-----");
+
+      //   // this.player.centerCoordinate += this.getViewBoxRemainder.y * dirY;
+      //   // // console.log(this.player, this.player.centerCoordinate);
+      //   // position.y += this.getViewBoxRemainder.y * dirY * -1;
+      //   // await this.moveMapOverflow();
+      //   // // console.log(this.cellSize * dirY, this.getViewBoxRemainder.y * dirY);
+      //   // // console.log(this.overflowedView);
+      //   // // this.moveMapOverflow();
       // }
 
       // if (!needChangePosition && this.overflowedView.y && dirY !== 0) {
