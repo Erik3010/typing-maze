@@ -111,11 +111,13 @@ class TypingMaze {
         Math.abs(this.overflowedView.y) !== this.getViewBoxRemainder.y
       ) {
         this.overflowedView.y += this.getViewBoxRemainder.y * dirY;
+        // this.moveMapOverflow();
         console.log(this.overflowedView.y);
       }
 
       if (!needChangePosition && dirY !== 0 && this.overflowedView.y) {
         this.overflowedView.y = 0;
+        // this.moveMapOverflow();
       }
 
       // if (
@@ -339,8 +341,8 @@ class TypingMaze {
       for (const cell of row) {
         animationQueue.push(
           cell.move({
-            x: (this.overflowedView.x * (isRevert ? -1 : 1)) / this.cellSize,
-            y: (this.overflowedView.y * (isRevert ? -1 : 1)) / this.cellSize,
+            x: (this.overflowedView.x * -1) / this.cellSize,
+            y: (this.overflowedView.y * -1) / this.cellSize,
           })
         );
       }
