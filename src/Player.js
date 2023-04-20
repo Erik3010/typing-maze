@@ -33,19 +33,20 @@ class Player {
   }
   async move({ x, y }, position) {
     if (position) {
-      await this.animate({
-        x: this.position.x + position.x,
-        y: this.position.y + position.y,
-      });
-
-      this.distanceToCenter.x += position.x;
-      this.distanceToCenter.y += position.y;
+      await this.animateMovement(position);
     }
 
     this.x += x;
     this.y += y;
+  }
+  async animateMovement(position) {
+    await this.animate({
+      x: this.position.x + position.x,
+      y: this.position.y + position.y,
+    });
 
-    // this[axis] += direction;
+    this.distanceToCenter.x += position.x;
+    this.distanceToCenter.y += position.y;
   }
   async animate({ x: targetX, y: targetY }) {
     const distance = {

@@ -75,6 +75,20 @@ class TypingMaze {
     console.log(this.viewBox);
     this.initViewBoxMap();
   }
+  needChangePlayerPosition({ x: dirX, y: dirY }) {
+    const nextX = this.player.x + dirX + this.blockToRender.x * dirX;
+    const nextY = this.player.y + dirY + this.blockToRender.y * dirY;
+
+    const isXAxisExceed = nextX < 0 || nextX > this.maps[0].length - 1;
+    const isYAxisExceed = nextY < 0 || nextY > this.maps.length - 1;
+
+    return (
+      (isYAxisExceed && dirY !== 0) ||
+      (!this.player.isCenterY && dirY !== 0) ||
+      (isXAxisExceed && dirX !== 0) ||
+      (!this.player.isCenterX && dirX !== 0)
+    );
+  }
   listener() {
     const eventMap = {
       ArrowUp: { x: 0, y: -1 },
@@ -89,118 +103,75 @@ class TypingMaze {
       const { x: dirX, y: dirY } = eventMap[event.code];
       const nextX = this.player.x + dirX + this.blockToRender.x * dirX;
       const nextY = this.player.y + dirY + this.blockToRender.y * dirY;
-      // console.log(nextY);
 
       const isYAxisExceed = nextY < 0 || nextY > this.maps.length - 1;
       const isXAxisExceed = nextX < 0 || nextX > this.maps[0].length - 1;
 
-      // const needChangePosition =
-      //   isYAxisExceed || isXAxisExceed || !this.player.isCenter;
-      let position = null;
       const needChangePosition =
         (isYAxisExceed && dirY !== 0) ||
         (!this.player.isCenterY && dirY !== 0) ||
         (isXAxisExceed && dirX !== 0) ||
         (!this.player.isCenterX && dirX !== 0);
+      // const needChangePosition = this.needChangePlayerPosition(
+      //   eventMap[event.code]
+      // );
 
+      let position = null;
       if (needChangePosition) {
         position = { x: this.cellSize * dirX, y: this.cellSize * dirY };
       }
 
-      if (
-        needChangePosition &&
-        dirY !== 0 &&
-        Math.abs(this.overflowedView.y) !== this.getViewBoxRemainder.y
-      ) {
-        this.overflowedView.y += this.getViewBoxRemainder.y * dirY;
-        position.y -= this.overflowedView.y;
-        this.player.centerCoordinate += this.getViewBoxRemainder.y * dirY;
-        await this.moveMapOverflow();
-      }
-
-      if (!needChangePosition && dirY !== 0 && this.overflowedView.y) {
-        await Promise.all([
-          this.moveMapOverflow(true),
-          this.player.animate({
-            x: this.player.position.x,
-            y: this.player.position.y + this.getViewBoxRemainder.y * dirY,
-          }),
-        ]);
-        this.player.distanceToCenter.y += this.getViewBoxRemainder.y * dirY;
-
-        this.overflowedView.y = 0;
-        this.player.centerCoordinate = 0;
-        this.cancelMapMove = true;
-      }
-
       // if (
-      //   this.getViewBoxRemainder.y &&
-      //   isYAxisExceed &&
+      //   needChangePosition &&
       //   dirY !== 0 &&
-      //   this.overflowedView.y !== this.getViewBoxRemainder.y * dirY * -1
+      //   Math.abs(this.overflowedView.y) !== this.getViewBoxRemainder.y
       // ) {
-      //   console.log("-----");
-      //   console.log("before: ", this.overflowedView.y);
-      //   this.overflowedView.y += this.getViewBoxRemainder.y * dirY * -1;
-      //   console.log("after: ", this.overflowedView.y);
-      //   console.log("-----");
-
-      //   // this.player.centerCoordinate += this.getViewBoxRemainder.y * dirY;
-      //   // // console.log(this.player, this.player.centerCoordinate);
-      //   // position.y += this.getViewBoxRemainder.y * dirY * -1;
-      //   // await this.moveMapOverflow();
-      //   // // console.log(this.cellSize * dirY, this.getViewBoxRemainder.y * dirY);
-      //   // // console.log(this.overflowedView);
-      //   // // this.moveMapOverflow();
+      //   this.overflowedView.y += this.getViewBoxRemainder.y * dirY;
+      //   position.y -= this.overflowedView.y;
+      //   this.player.centerCoordinate += this.getViewBoxRemainder.y * dirY;
+      //   await this.moveMapOverflow();
       // }
 
-      // if (!needChangePosition && this.overflowedView.y && dirY !== 0) {
-      //   await this.moveMapOverflow(true);
-      //   this.player.centerCoordinate += this.getViewBoxRemainder.y * dirY;
-      //   this.overflowedView.y += this.getViewBoxRemainder.y * dirY;
+      // if (!needChangePosition && dirY !== 0 && this.overflowedView.y) {
+      //   await Promise.all([
+      //     this.moveMapOverflow(true),
+      //     this.player.animateMovement({
+      //       x: 0,
+      //       y: this.getViewBoxRemainder.y * dirY,
+      //     }),
+      //     // this.player.animate({
+      //     //   x: this.player.position.x,
+      //     //   y: this.player.position.y + this.getViewBoxRemainder.y * dirY,
+      //     // }),
+      //   ]);
+      //   // this.player.distanceToCenter.y += this.getViewBoxRemainder.y * dirY;
 
-      //   await this.player.animate({
-      //     x: this.player.position.x,
-      //     y: this.player.position.y + this.getViewBoxRemainder.y * dirY * -1,
-      //   });
+      //   this.overflowedView.y = 0;
+      //   this.player.centerCoordinate = 0;
+      //   this.cancelMapMove = true;
       // }
 
       this.isAnimating = true;
 
+      console.log(
+        `needChangePosition : ${needChangePosition}`,
+        `centerY: ${this.player.isCenterY}`,
+        `centerX: ${this.player.isCenterX}`,
+        `distance:`,
+        this.player.distanceToCenter,
+        "isYAxisExceed:",
+        isYAxisExceed
+      );
       await this.player.move(eventMap[event.code], position);
       if (!needChangePosition && !this.cancelMapMove) {
-        // if (this.overflowedView.y && dirY !== 0) {
-        //   this.player.centerCoordinate +=
-        //     this.getViewBoxRemainder.y * dirY * -1;
-        //   await this.moveMapOverflow(true);
-        //   await this.player.animate({
-        //     x: this.player.position.x,
-        //     y: this.player.position.y + this.getViewBoxRemainder.y * dirY * -1,
-        //   });
-        //   this.overflowedView.y += this.getViewBoxRemainder.y * dirY;
-        //   // this.player.position.y += this.getViewBoxRemainder.y * dirY * -1;
-        // }
         await this.moveViewBoxMap(eventMap[event.code]);
       }
 
-      // console.log(this.overflowedView, this.player.centerCoordinate);
-
       this.isAnimating = false;
-      // console.log(this.player.distanceToCenter);
-      // console.log(this.player.isCenterY, this.player.distanceToCenter.y);
 
       if (this.cancelMapMove) this.cancelMapMove = false;
 
-      console.log(
-        "playerDistance,",
-        this.player.distanceToCenter,
-        "position",
-        this.player.position,
-        "x,y",
-        `${this.player.x},${this.player.y}`
-      );
-      console.log(JSON.parse(JSON.stringify(this.cells)));
-      // console.log(this.player.position);
+      // console.log(JSON.parse(JSON.stringify(this.cells)));
     });
   }
   draw() {
@@ -363,14 +334,15 @@ class TypingMaze {
 
     for (const row of this.cells) {
       for (const cell of row) {
+        const { x: overflowX, y: overflowY } = this.overflowedView;
+        const revertDir = isRevert ? -1 : 1;
+        const x = overflowX * -1 * revertDir;
+        const y = overflowY * -1 * revertDir;
+
         animationQueue.push(
           cell.move({
-            x:
-              (this.overflowedView.x * -1 * (isRevert ? -1 : 1)) /
-              this.cellSize,
-            y:
-              (this.overflowedView.y * -1 * (isRevert ? -1 : 1)) /
-              this.cellSize,
+            x: x / this.cellSize,
+            y: y / this.cellSize,
           })
         );
       }
