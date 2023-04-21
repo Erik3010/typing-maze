@@ -104,10 +104,24 @@ class TypingMaze {
       const nextX = this.player.x + dirX + this.blockToRender.x * dirX;
       const nextY = this.player.y + dirY + this.blockToRender.y * dirY;
 
+      const isUpperYExceed = this.player.y + dirY - this.blockToRender.y < 0;
+      const isLowerYExceed =
+        this.player.y + dirY + this.blockToRender.y >= this.maps.length;
+
       const isYAxisExceed = nextY < 0 || nextY > this.maps.length - 1;
       const isXAxisExceed = nextX < 0 || nextX > this.maps[0].length - 1;
 
-      const needChangePosition =
+      // console.log(
+      //   `isYAxisExceed: ${isYAxisExceed}`,
+      //   `nextY: ${nextY}`,
+      //   `this.player.y: ${this.player.y}`,
+      //   `isUpperYExceed: ${isUpperYExceed}`,
+      //   `isLowerYExceed: ${isLowerYExceed}`
+      //   // this.player.y + dirY - this.blockToRender.y < 0
+      //   // this.player.y * dirY + this.blockToRender.y * dirY,
+      // );
+
+      let needChangePosition =
         (isYAxisExceed && dirY !== 0) ||
         (!this.player.isCenterY && dirY !== 0) ||
         (isXAxisExceed && dirX !== 0) ||
@@ -128,7 +142,7 @@ class TypingMaze {
       // ) {
       //   this.overflowedView.y += this.getViewBoxRemainder.y * dirY;
       //   position.y -= this.overflowedView.y;
-      //   this.player.centerCoordinate += this.getViewBoxRemainder.y * dirY;
+      //   // this.player.centerCoordinate += this.getViewBoxRemainder.y * dirY;
       //   await this.moveMapOverflow();
       // }
 
@@ -139,29 +153,74 @@ class TypingMaze {
       //       x: 0,
       //       y: this.getViewBoxRemainder.y * dirY,
       //     }),
-      //     // this.player.animate({
-      //     //   x: this.player.position.x,
-      //     //   y: this.player.position.y + this.getViewBoxRemainder.y * dirY,
-      //     // }),
       //   ]);
-      //   // this.player.distanceToCenter.y += this.getViewBoxRemainder.y * dirY;
 
       //   this.overflowedView.y = 0;
-      //   this.player.centerCoordinate = 0;
+      //   // this.player.centerCoordinate = 0;
       //   this.cancelMapMove = true;
       // }
 
       this.isAnimating = true;
 
-      console.log(
-        `needChangePosition : ${needChangePosition}`,
-        `centerY: ${this.player.isCenterY}`,
-        `centerX: ${this.player.isCenterX}`,
-        `distance:`,
-        this.player.distanceToCenter,
-        "isYAxisExceed:",
-        isYAxisExceed
-      );
+      console.log(isUpperYExceed, isLowerYExceed, dirY);
+
+      if (
+        (dirY === -1 && isUpperYExceed && !this.overflowedView.y) ||
+        (dirY === 1 && !isUpperYExceed && this.overflowedView.y < 0)
+      ) {
+        if (dirY === -1 && isUpperYExceed && !this.overflowedView.y) {
+          this.overflowedView.y += this.getViewBoxRemainder.y * dirY;
+          position.y -= this.overflowedView.y;
+          // this.player.centerCoordinate += this.getViewBoxRemainder.y * dirY;
+          await this.moveMapOverflow();
+        } else {
+          position = null;
+          await Promise.all([
+            this.moveMapOverflow(true),
+            this.player.animateMovement({
+              x: 0,
+              y: this.getViewBoxRemainder.y * dirY,
+            }),
+          ]);
+          this.overflowedView.y = 0;
+          // this.player.centerCoordinate = 0;
+          // this.cancelMapMove = true;
+        }
+        // console.log("expand half map", this.overflowedView.y);
+      } else if (
+        (dirY === 1 && isLowerYExceed && !this.overflowedView.y) ||
+        (dirY === -1 && !isLowerYExceed && this.overflowedView.y > 0)
+      ) {
+        if (dirY === 1 && isLowerYExceed && !this.overflowedView.y) {
+          this.overflowedView.y += this.getViewBoxRemainder.y * dirY;
+          position.y -= this.overflowedView.y;
+          this.moveMapOverflow();
+        } else {
+          position = null;
+          await Promise.all([
+            this.moveMapOverflow(true),
+            this.player.animateMovement({
+              x: 0,
+              y: this.getViewBoxRemainder.y * dirY,
+            }),
+          ]);
+          this.overflowedView.y = 0;
+        }
+        // console.log("expand lower");
+      }
+
+      // console.log(
+      //   `needChangePosition : ${needChangePosition}`,
+      //   `centerY: ${this.player.isCenterY}`,
+      //   `centerX: ${this.player.isCenterX}`,
+      //   `distance:`,
+      //   this.player.distanceToCenter,
+      //   "isYAxisExceed:",
+      //   isYAxisExceed,
+      //   position,
+      //   this.player.position
+      // );
+
       await this.player.move(eventMap[event.code], position);
       if (!needChangePosition && !this.cancelMapMove) {
         await this.moveViewBoxMap(eventMap[event.code]);
@@ -273,16 +332,29 @@ class TypingMaze {
           const nextX = this.player.x + blockToRender.x * targetX;
 
           for (let tempY = 0; tempY < blockToRender.y * 2 + 1; tempY++) {
-            const exceedTolerance =
-              (this.player.distanceToCenter.y / this.cellSize) * -1;
-            // console.log(exceedTolerance);
+            // either ceil or floor
+            // ceil for upper, floor for lower
+            const exceedTolerance = Math.ceil(
+              (this.player.distanceToCenter.y / this.cellSize) * -1
+            );
             const dY =
               this.player.y + exceedTolerance - (blockToRender.y - tempY);
+            // console.log(
+            //   dY,
+            //   this.player.y,
+            //   this.player.distanceToCenter,
+            //   exceedTolerance,
+            //   (this.player.distanceToCenter.y / this.cellSize) * -1,
+            //   Math.floor(this.player.distanceToCenter.y / this.cellSize) * -1
+            // );
 
             const cell = new Cell({
               ctx: this.ctx,
               x: centerX + blockToRender.x * targetX * this.cellSize,
-              y: centerY + (tempY - blockToRender.y) * this.cellSize,
+              y:
+                centerY +
+                (tempY - blockToRender.y) * this.cellSize -
+                this.overflowedView.y,
               width: this.cellSize,
               value: this.maps[dY][nextX],
               color: this.maps[dY][nextX] === this.wall ? "#ffba00" : "#fff3d2",
