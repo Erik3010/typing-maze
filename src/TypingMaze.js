@@ -108,18 +108,13 @@ class TypingMaze {
       const isLowerYExceed =
         this.player.y + dirY + this.blockToRender.y >= this.maps.length;
 
+      const isRightXExceed =
+        this.player.x + dirX + this.blockToRender.x >= this.maps[0].length;
+      const isLeftXExceed = this.player.x + dirX - this.blockToRender.x < 0;
+      // console.log(isRightXExceed, isLeftXExceed);
+
       const isYAxisExceed = nextY < 0 || nextY > this.maps.length - 1;
       const isXAxisExceed = nextX < 0 || nextX > this.maps[0].length - 1;
-
-      // console.log(
-      //   `isYAxisExceed: ${isYAxisExceed}`,
-      //   `nextY: ${nextY}`,
-      //   `this.player.y: ${this.player.y}`,
-      //   `isUpperYExceed: ${isUpperYExceed}`,
-      //   `isLowerYExceed: ${isLowerYExceed}`
-      //   // this.player.y + dirY - this.blockToRender.y < 0
-      //   // this.player.y * dirY + this.blockToRender.y * dirY,
-      // );
 
       let needChangePosition =
         (isYAxisExceed && dirY !== 0) ||
@@ -162,52 +157,95 @@ class TypingMaze {
 
       this.isAnimating = true;
 
-      console.log(isUpperYExceed, isLowerYExceed, dirY);
+      // console.log(isUpperYExceed, isLowerYExceed, dirY);
+
+      // TODO: Temporary disabled
+      // if (
+      //   (dirY === -1 && isUpperYExceed && !this.overflowedView.y) ||
+      //   (dirY === 1 && !isUpperYExceed && this.overflowedView.y < 0)
+      // ) {
+      //   if (dirY === -1 && isUpperYExceed && !this.overflowedView.y) {
+      //     this.overflowedView.y += this.getViewBoxRemainder.y * dirY;
+      //     position.y -= this.overflowedView.y;
+      //     // this.player.centerCoordinate += this.getViewBoxRemainder.y * dirY;
+      //     await this.moveMapOverflow();
+      //   } else {
+      //     position = null;
+      //     await Promise.all([
+      //       this.moveMapOverflow(true),
+      //       this.player.animateMovement({
+      //         x: 0,
+      //         y: this.getViewBoxRemainder.y * dirY,
+      //       }),
+      //     ]);
+      //     this.overflowedView.y = 0;
+      //     // this.player.centerCoordinate = 0;
+      //     // this.cancelMapMove = true;
+      //   }
+      // } else if (
+      //   (dirY === 1 && isLowerYExceed && !this.overflowedView.y) ||
+      //   (dirY === -1 && !isLowerYExceed && this.overflowedView.y > 0)
+      // ) {
+      //   if (dirY === 1 && isLowerYExceed && !this.overflowedView.y) {
+      //     this.overflowedView.y += this.getViewBoxRemainder.y * dirY;
+      //     position.y -= this.overflowedView.y;
+      //     this.moveMapOverflow();
+      //   } else {
+      //     position = null;
+      //     await Promise.all([
+      //       this.moveMapOverflow(true),
+      //       this.player.animateMovement({
+      //         x: 0,
+      //         y: this.getViewBoxRemainder.y * dirY,
+      //       }),
+      //     ]);
+      //     this.overflowedView.y = 0;
+      //   }
+      //   // console.log("expand lower");
+      // }
 
       if (
-        (dirY === -1 && isUpperYExceed && !this.overflowedView.y) ||
-        (dirY === 1 && !isUpperYExceed && this.overflowedView.y < 0)
+        (dirX === -1 && isLeftXExceed && !this.overflowedView.x) ||
+        (dirX === 1 && !isLeftXExceed && this.overflowedView.x < 0)
       ) {
-        if (dirY === -1 && isUpperYExceed && !this.overflowedView.y) {
-          this.overflowedView.y += this.getViewBoxRemainder.y * dirY;
-          position.y -= this.overflowedView.y;
-          // this.player.centerCoordinate += this.getViewBoxRemainder.y * dirY;
+        if (dirX === -1 && isLeftXExceed && !this.overflowedView.x) {
+          this.overflowedView.x += this.getViewBoxRemainder.x * dirX;
+          position.x -= this.overflowedView.x;
+          await this.moveMapOverflow();
+          // console.log("expand x map");
+        } else {
+          position = null;
+          await Promise.all([
+            this.moveMapOverflow(true),
+            this.player.animateMovement({
+              x: this.getViewBoxRemainder.x * dirX,
+              y: 0,
+            }),
+          ]);
+          this.overflowedView.x = 0;
+          // console.log("unexpand x map");
+        }
+      } else if (
+        (dirX === 1 && isRightXExceed && !this.overflowedView.x) ||
+        (dirX === -1 && !isRightXExceed && this.overflowedView.x > 0)
+      ) {
+        if (dirX === 1 && isRightXExceed && !this.overflowedView.x) {
+          this.overflowedView.x += this.getViewBoxRemainder.x * dirX;
+          position.x -= this.overflowedView.x;
           await this.moveMapOverflow();
         } else {
           position = null;
           await Promise.all([
             this.moveMapOverflow(true),
             this.player.animateMovement({
-              x: 0,
-              y: this.getViewBoxRemainder.y * dirY,
+              x: this.getViewBoxRemainder.x * dirX,
+              y: 0,
             }),
           ]);
-          this.overflowedView.y = 0;
-          // this.player.centerCoordinate = 0;
-          // this.cancelMapMove = true;
+          this.overflowedView.x = 0;
         }
-        // console.log("expand half map", this.overflowedView.y);
-      } else if (
-        (dirY === 1 && isLowerYExceed && !this.overflowedView.y) ||
-        (dirY === -1 && !isLowerYExceed && this.overflowedView.y > 0)
-      ) {
-        if (dirY === 1 && isLowerYExceed && !this.overflowedView.y) {
-          this.overflowedView.y += this.getViewBoxRemainder.y * dirY;
-          position.y -= this.overflowedView.y;
-          this.moveMapOverflow();
-        } else {
-          position = null;
-          await Promise.all([
-            this.moveMapOverflow(true),
-            this.player.animateMovement({
-              x: 0,
-              y: this.getViewBoxRemainder.y * dirY,
-            }),
-          ]);
-          this.overflowedView.y = 0;
-        }
-        // console.log("expand lower");
       }
+      // console.log(this.overflowedView);
 
       // console.log(
       //   `needChangePosition : ${needChangePosition}`,
@@ -304,20 +342,26 @@ class TypingMaze {
       if (targetY !== 0 && !this.extenderCells.length) {
         const row = [];
         for (let x = 0; x < blockToRender.x * 2 + 1; x++) {
+          const distance = this.player.distanceToCenter.x;
           const exceedTolerance =
-            (this.player.distanceToCenter.x / this.cellSize) * -1;
+            Math.ceil(Math.abs(distance / this.cellSize)) *
+            Math.sign(distance) *
+            -1;
+          // const exceedTolerance =
+          //   (this.player.distanceToCenter.x / this.cellSize) * -1;
+
           const nextX = this.blockToRender.x - x;
+          const dX = this.player.x + exceedTolerance - nextX;
           const cell = new Cell({
             ctx: this.ctx,
-            x: centerX + (x - blockToRender.x) * this.cellSize,
+            x:
+              centerX +
+              (x - blockToRender.x) * this.cellSize -
+              this.overflowedView.x,
             y: centerY + blockToRender.y * this.cellSize * targetY,
             width: this.cellSize,
-            value: this.maps[nextY][this.player.x + exceedTolerance - nextX],
-            color:
-              this.maps[nextY][this.player.x + exceedTolerance - nextX] ===
-              this.wall
-                ? "#ffba00"
-                : "#fff3d2",
+            value: this.maps[nextY][dX],
+            color: this.maps[nextY][dX] === this.wall ? "#ffba00" : "#fff3d2",
           });
 
           row.push(cell);
@@ -334,19 +378,18 @@ class TypingMaze {
           for (let tempY = 0; tempY < blockToRender.y * 2 + 1; tempY++) {
             // either ceil or floor
             // ceil for upper, floor for lower
-            const exceedTolerance = Math.ceil(
-              (this.player.distanceToCenter.y / this.cellSize) * -1
-            );
+            // const exceedTolerance = Math.ceil(
+            //   (this.player.distanceToCenter.y / this.cellSize) * -1
+            // );
+
+            const distance = this.player.distanceToCenter.y;
+            const exceedTolerance =
+              Math.ceil(Math.abs(distance / this.cellSize)) *
+              Math.sign(distance) *
+              -1;
+
             const dY =
               this.player.y + exceedTolerance - (blockToRender.y - tempY);
-            // console.log(
-            //   dY,
-            //   this.player.y,
-            //   this.player.distanceToCenter,
-            //   exceedTolerance,
-            //   (this.player.distanceToCenter.y / this.cellSize) * -1,
-            //   Math.floor(this.player.distanceToCenter.y / this.cellSize) * -1
-            // );
 
             const cell = new Cell({
               ctx: this.ctx,
