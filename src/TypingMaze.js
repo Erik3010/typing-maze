@@ -45,8 +45,6 @@ class TypingMaze {
     this.isAnimating = false;
 
     this.overflowedView = { x: 0, y: 0 };
-
-    this.cancelMapMove = false;
   }
   init() {
     console.log("init");
@@ -104,96 +102,68 @@ class TypingMaze {
       const nextX = this.player.x + dirX + this.blockToRender.x * dirX;
       const nextY = this.player.y + dirY + this.blockToRender.y * dirY;
 
-      const isUpperYExceed = this.player.y + dirY - this.blockToRender.y < 0;
-      const isLowerYExceed =
+      const isTopExceed = this.player.y + dirY - this.blockToRender.y < 0;
+      const isBottomExceed =
         this.player.y + dirY + this.blockToRender.y >= this.maps.length;
 
-      const isRightXExceed =
+      const isRightExceed =
         this.player.x + dirX + this.blockToRender.x >= this.maps[0].length;
-      const isLeftXExceed = this.player.x + dirX - this.blockToRender.x < 0;
-      // console.log(isRightXExceed, isLeftXExceed);
+      const isLeftExceed = this.player.x + dirX - this.blockToRender.x < 0;
 
       const isYAxisExceed = nextY < 0 || nextY > this.maps.length - 1;
       const isXAxisExceed = nextX < 0 || nextX > this.maps[0].length - 1;
 
-      let needChangePosition =
-        (isYAxisExceed && dirY !== 0) ||
-        (!this.player.isCenterY && dirY !== 0) ||
-        (isXAxisExceed && dirX !== 0) ||
-        (!this.player.isCenterX && dirX !== 0);
-      // const needChangePosition = this.needChangePlayerPosition(
-      //   eventMap[event.code]
-      // );
+      // let needChangePosition =
+      //   (isYAxisExceed && dirY !== 0) ||
+      //   (!this.player.isCenterY && dirY !== 0) ||
+      //   (isXAxisExceed && dirX !== 0) ||
+      //   (!this.player.isCenterX && dirX !== 0);
+      const needChangePosition = this.needChangePlayerPosition(
+        eventMap[event.code]
+      );
 
       let position = null;
       if (needChangePosition) {
         position = { x: this.cellSize * dirX, y: this.cellSize * dirY };
       }
 
-      // if (
-      //   needChangePosition &&
-      //   dirY !== 0 &&
-      //   Math.abs(this.overflowedView.y) !== this.getViewBoxRemainder.y
-      // ) {
-      //   this.overflowedView.y += this.getViewBoxRemainder.y * dirY;
-      //   position.y -= this.overflowedView.y;
-      //   // this.player.centerCoordinate += this.getViewBoxRemainder.y * dirY;
-      //   await this.moveMapOverflow();
-      // }
-
-      // if (!needChangePosition && dirY !== 0 && this.overflowedView.y) {
-      //   await Promise.all([
-      //     this.moveMapOverflow(true),
-      //     this.player.animateMovement({
-      //       x: 0,
-      //       y: this.getViewBoxRemainder.y * dirY,
-      //     }),
-      //   ]);
-
-      //   this.overflowedView.y = 0;
-      //   // this.player.centerCoordinate = 0;
-      //   this.cancelMapMove = true;
-      // }
-
       this.isAnimating = true;
 
-      // console.log(isUpperYExceed, isLowerYExceed, dirY);
+      const shouldExpandTopMap =
+        dirY === -1 && isTopExceed && !this.overflowedView.y;
+      const shouldCollapseTopMap =
+        dirY === 1 && !isTopExceed && this.overflowedView.y < 0;
 
-      // TODO: Temporary disabled
-      // if (
-      //   (dirY === -1 && isUpperYExceed && !this.overflowedView.y) ||
-      //   (dirY === 1 && !isUpperYExceed && this.overflowedView.y < 0)
-      // ) {
-      //   if (dirY === -1 && isUpperYExceed && !this.overflowedView.y) {
+      const shouldExpandBottomMap =
+        dirY === 1 && isBottomExceed && !this.overflowedView.y;
+      const shouldCollapseBottomMap =
+        dirY === -1 && !isBottomExceed && this.overflowedView.y > 0;
+
+      if (shouldExpandTopMap || shouldExpandBottomMap) {
+        this.overflowedView.y += this.getViewBoxRemainder.y * dirY;
+        position.y -= this.overflowedView.y;
+        await this.moveMapOverflow({ x: 0, y: this.overflowedView.y });
+      } else if (shouldCollapseTopMap || shouldCollapseBottomMap) {
+        position = null;
+        await Promise.all([
+          this.moveMapOverflow({ x: 0, y: this.overflowedView.y * -1 }),
+          this.player.animateMovement({
+            x: 0,
+            y: this.getViewBoxRemainder.y * dirY,
+          }),
+        ]);
+        this.overflowedView.y = 0;
+      }
+
+      // if (shouldExpandTopMap || shouldCollapseTopMap) {
+      //   if (shouldExpandTopMap) {
       //     this.overflowedView.y += this.getViewBoxRemainder.y * dirY;
       //     position.y -= this.overflowedView.y;
-      //     // this.player.centerCoordinate += this.getViewBoxRemainder.y * dirY;
-      //     await this.moveMapOverflow();
+      //     await this.moveMapOverflow({ x: 0, y: this.overflowedView.y });
       //   } else {
       //     position = null;
       //     await Promise.all([
-      //       this.moveMapOverflow(true),
-      //       this.player.animateMovement({
-      //         x: 0,
-      //         y: this.getViewBoxRemainder.y * dirY,
-      //       }),
-      //     ]);
-      //     this.overflowedView.y = 0;
-      //     // this.player.centerCoordinate = 0;
-      //     // this.cancelMapMove = true;
-      //   }
-      // } else if (
-      //   (dirY === 1 && isLowerYExceed && !this.overflowedView.y) ||
-      //   (dirY === -1 && !isLowerYExceed && this.overflowedView.y > 0)
-      // ) {
-      //   if (dirY === 1 && isLowerYExceed && !this.overflowedView.y) {
-      //     this.overflowedView.y += this.getViewBoxRemainder.y * dirY;
-      //     position.y -= this.overflowedView.y;
-      //     this.moveMapOverflow();
-      //   } else {
-      //     position = null;
-      //     await Promise.all([
-      //       this.moveMapOverflow(true),
+      //       this.moveMapOverflow({ x: 0, y: this.overflowedView.y * -1 }),
       //       this.player.animateMovement({
       //         x: 0,
       //         y: this.getViewBoxRemainder.y * dirY,
@@ -201,72 +171,103 @@ class TypingMaze {
       //     ]);
       //     this.overflowedView.y = 0;
       //   }
-      //   // console.log("expand lower");
+      // } else if (shouldExpandBottomMap || shouldCollapseBottomMap) {
+      //   if (shouldExpandBottomMap) {
+      //     this.overflowedView.y += this.getViewBoxRemainder.y * dirY;
+      //     position.y -= this.overflowedView.y;
+      //     this.moveMapOverflow({ x: 0, y: this.overflowedView.y });
+      //   } else {
+      //     position = null;
+      //     await Promise.all([
+      //       this.moveMapOverflow({ x: 0, y: this.overflowedView.y * -1 }),
+      //       this.player.animateMovement({
+      //         x: 0,
+      //         y: this.getViewBoxRemainder.y * dirY,
+      //       }),
+      //     ]);
+      //     this.overflowedView.y = 0;
+      //   }
       // }
 
-      if (
-        (dirX === -1 && isLeftXExceed && !this.overflowedView.x) ||
-        (dirX === 1 && !isLeftXExceed && this.overflowedView.x < 0)
-      ) {
-        if (dirX === -1 && isLeftXExceed && !this.overflowedView.x) {
-          this.overflowedView.x += this.getViewBoxRemainder.x * dirX;
-          position.x -= this.overflowedView.x;
-          await this.moveMapOverflow();
-          // console.log("expand x map");
-        } else {
-          position = null;
-          await Promise.all([
-            this.moveMapOverflow(true),
-            this.player.animateMovement({
-              x: this.getViewBoxRemainder.x * dirX,
-              y: 0,
-            }),
-          ]);
-          this.overflowedView.x = 0;
-          // console.log("unexpand x map");
-        }
-      } else if (
-        (dirX === 1 && isRightXExceed && !this.overflowedView.x) ||
-        (dirX === -1 && !isRightXExceed && this.overflowedView.x > 0)
-      ) {
-        if (dirX === 1 && isRightXExceed && !this.overflowedView.x) {
-          this.overflowedView.x += this.getViewBoxRemainder.x * dirX;
-          position.x -= this.overflowedView.x;
-          await this.moveMapOverflow();
-        } else {
-          position = null;
-          await Promise.all([
-            this.moveMapOverflow(true),
-            this.player.animateMovement({
-              x: this.getViewBoxRemainder.x * dirX,
-              y: 0,
-            }),
-          ]);
-          this.overflowedView.x = 0;
-        }
-      }
-      // console.log(this.overflowedView);
+      const shouldExpandLeftMap =
+        dirX === -1 && isLeftExceed && !this.overflowedView.x;
+      const shouldCollapseLeftMap =
+        dirX === 1 && !isLeftExceed && this.overflowedView.x < 0;
 
-      // console.log(
-      //   `needChangePosition : ${needChangePosition}`,
-      //   `centerY: ${this.player.isCenterY}`,
-      //   `centerX: ${this.player.isCenterX}`,
-      //   `distance:`,
-      //   this.player.distanceToCenter,
-      //   "isYAxisExceed:",
-      //   isYAxisExceed,
-      //   position,
-      //   this.player.position
-      // );
+      const shouldExpandRightMap =
+        dirX === 1 && isRightExceed && !this.overflowedView.x;
+      const shouldCollapseRightMap =
+        dirX === -1 && !isRightExceed && this.overflowedView.x > 0;
+
+      if (shouldExpandLeftMap || shouldExpandRightMap) {
+        this.overflowedView.x += this.getViewBoxRemainder.x * dirX;
+        position.x -= this.overflowedView.x;
+        await this.moveMapOverflow({ x: this.overflowedView.x, y: 0 });
+      } else if (shouldCollapseLeftMap || shouldCollapseRightMap) {
+        position = null;
+        await Promise.all([
+          await this.moveMapOverflow({
+            x: this.overflowedView.x * -1,
+            y: 0,
+          }),
+          this.player.animateMovement({
+            x: this.getViewBoxRemainder.x * dirX,
+            y: 0,
+          }),
+        ]);
+        this.overflowedView.x = 0;
+      }
+
+      // if (
+      //   (dirX === -1 && isLeftExceed && !this.overflowedView.x) ||
+      //   (dirX === 1 && !isLeftExceed && this.overflowedView.x < 0)
+      // ) {
+      //   if (dirX === -1 && isLeftExceed && !this.overflowedView.x) {
+      //     this.overflowedView.x += this.getViewBoxRemainder.x * dirX;
+      //     position.x -= this.overflowedView.x;
+      //     // await this.moveMapOverflow();
+      //     await this.moveMapOverflow({ x: this.overflowedView.x, y: 0 });
+      //   } else {
+      //     position = null;
+      //     await Promise.all([
+      //       // this.moveMapOverflow(true),
+      //       await this.moveMapOverflow({ x: this.overflowedView.x * -1, y: 0 }),
+      //       this.player.animateMovement({
+      //         x: this.getViewBoxRemainder.x * dirX,
+      //         y: 0,
+      //       }),
+      //     ]);
+      //     this.overflowedView.x = 0;
+      //   }
+      // } else if (
+      //   (dirX === 1 && isRightExceed && !this.overflowedView.x) ||
+      //   (dirX === -1 && !isRightExceed && this.overflowedView.x > 0)
+      // ) {
+      //   if (dirX === 1 && isRightExceed && !this.overflowedView.x) {
+      //     this.overflowedView.x += this.getViewBoxRemainder.x * dirX;
+      //     position.x -= this.overflowedView.x;
+      //     // await this.moveMapOverflow();
+      //     await this.moveMapOverflow({ x: this.overflowedView.x, y: 0 });
+      //   } else {
+      //     position = null;
+      //     await Promise.all([
+      //       // this.moveMapOverflow(true),
+      //       this.moveMapOverflow({ x: this.overflowedView.x * -1, y: 0 }),
+      //       this.player.animateMovement({
+      //         x: this.getViewBoxRemainder.x * dirX,
+      //         y: 0,
+      //       }),
+      //     ]);
+      //     this.overflowedView.x = 0;
+      //   }
+      // }
 
       await this.player.move(eventMap[event.code], position);
-      if (!needChangePosition && !this.cancelMapMove) {
+      if (!needChangePosition) {
         await this.moveViewBoxMap(eventMap[event.code]);
       }
 
       this.isAnimating = false;
-
-      if (this.cancelMapMove) this.cancelMapMove = false;
 
       // console.log(JSON.parse(JSON.stringify(this.cells)));
     });
@@ -443,30 +444,43 @@ class TypingMaze {
     // console.log(JSON.parse(JSON.stringify(this.cells)));
     this.extenderCells = [];
   }
-  async moveMapOverflow(isRevert = false) {
+  async moveMapOverflow({ x, y }) {
     const animationQueue = [];
-    // console.log(this.overflowedView.y * (isRevert ? -1 : 1) * -1);
 
     for (const row of this.cells) {
       for (const cell of row) {
-        const { x: overflowX, y: overflowY } = this.overflowedView;
-        const revertDir = isRevert ? -1 : 1;
-        const x = overflowX * -1 * revertDir;
-        const y = overflowY * -1 * revertDir;
-
         animationQueue.push(
           cell.move({
-            x: x / this.cellSize,
-            y: y / this.cellSize,
+            x: (x * -1) / this.cellSize,
+            y: (y * -1) / this.cellSize,
           })
         );
       }
     }
 
     await Promise.all(animationQueue);
-
-    // console.log(this.overflowedView);
   }
+  // async moveMapOverflow(isRevert = false) {
+  //   const animationQueue = [];
+
+  //   for (const row of this.cells) {
+  //     for (const cell of row) {
+  //       const { x: overflowX, y: overflowY } = this.overflowedView;
+  //       const revertDir = isRevert ? -1 : 1;
+  //       const x = overflowX * -1 * revertDir;
+  //       const y = overflowY * -1 * revertDir;
+
+  //       animationQueue.push(
+  //         cell.move({
+  //           x: x / this.cellSize,
+  //           y: y / this.cellSize,
+  //         })
+  //       );
+  //     }
+  //   }
+
+  //   await Promise.all(animationQueue);
+  // }
   drawMap() {
     for (const row of this.extenderCells) {
       for (const cell of row) {
