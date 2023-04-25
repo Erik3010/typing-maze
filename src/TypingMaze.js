@@ -268,8 +268,6 @@ class TypingMaze {
       }
 
       this.isAnimating = false;
-
-      // console.log(JSON.parse(JSON.stringify(this.cells)));
     });
   }
   draw() {
