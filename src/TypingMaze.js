@@ -87,6 +87,48 @@ class TypingMaze {
       (!this.player.isCenterX && dirX !== 0)
     );
   }
+  async handleMapOverflow({
+    axis,
+    dir,
+    isStartMapExceed,
+    isEndMapExceed,
+    expandCb,
+    collapseCb,
+  }) {
+    const position = { x: 0, y: 0 };
+
+    const overflowed = this.overflowedView[axis];
+    const remainder = this.getViewBoxRemainder[axis];
+
+    // start boundary
+    const shouldExpandStartMap = dir === -1 && isStartMapExceed && !overflowed;
+    const shouldCollapseStartMap =
+      dir === 1 && !isStartMapExceed && overflowed < 0;
+
+    // end boundary
+    const shouldExpandEndMap = dir === 1 && isEndMapExceed && !overflowed;
+    const shouldCollapseEndMap =
+      dir === -1 && !isEndMapExceed && overflowed > 0;
+
+    if (shouldExpandStartMap || shouldExpandEndMap) {
+      this.overflowedView[axis] += remainder * dir;
+      expandCb();
+      await this.moveMapOverflow({
+        ...position,
+        [axis]: this.overflowedView[axis],
+      });
+    } else if (shouldCollapseStartMap || shouldCollapseEndMap) {
+      collapseCb();
+      await Promise.all([
+        this.moveMapOverflow({
+          ...position,
+          [axis]: this.overflowedView[axis] * -1,
+        }),
+        this.player.animateMovement({ ...position, [axis]: remainder * dir }),
+      ]);
+      this.overflowedView[axis] = 0;
+    }
+  }
   listener() {
     const eventMap = {
       ArrowUp: { x: 0, y: -1 },
@@ -98,29 +140,9 @@ class TypingMaze {
       if (!Object.keys(eventMap).includes(event.code) || this.isAnimating)
         return;
 
-      const { x: dirX, y: dirY } = eventMap[event.code];
-      const nextX = this.player.x + dirX + this.blockToRender.x * dirX;
-      const nextY = this.player.y + dirY + this.blockToRender.y * dirY;
-
-      const isTopExceed = this.player.y + dirY - this.blockToRender.y < 0;
-      const isBottomExceed =
-        this.player.y + dirY + this.blockToRender.y >= this.maps.length;
-
-      const isRightExceed =
-        this.player.x + dirX + this.blockToRender.x >= this.maps[0].length;
-      const isLeftExceed = this.player.x + dirX - this.blockToRender.x < 0;
-
-      const isYAxisExceed = nextY < 0 || nextY > this.maps.length - 1;
-      const isXAxisExceed = nextX < 0 || nextX > this.maps[0].length - 1;
-
-      // let needChangePosition =
-      //   (isYAxisExceed && dirY !== 0) ||
-      //   (!this.player.isCenterY && dirY !== 0) ||
-      //   (isXAxisExceed && dirX !== 0) ||
-      //   (!this.player.isCenterX && dirX !== 0);
-      const needChangePosition = this.needChangePlayerPosition(
-        eventMap[event.code]
-      );
+      const keyCode = eventMap[event.code];
+      const { x: dirX, y: dirY } = keyCode;
+      const needChangePosition = this.needChangePlayerPosition(keyCode);
 
       let position = null;
       if (needChangePosition) {
@@ -129,31 +151,55 @@ class TypingMaze {
 
       this.isAnimating = true;
 
-      const shouldExpandTopMap =
-        dirY === -1 && isTopExceed && !this.overflowedView.y;
-      const shouldCollapseTopMap =
-        dirY === 1 && !isTopExceed && this.overflowedView.y < 0;
+      const isTopExceed = this.player.y + dirY - this.blockToRender.y < 0;
+      const isBottomExceed =
+        this.player.y + dirY + this.blockToRender.y >= this.maps.length;
+      await this.handleMapOverflow({
+        axis: "y",
+        dir: dirY,
+        isStartMapExceed: isTopExceed,
+        isEndMapExceed: isBottomExceed,
+        expandCb: () => (position.y -= this.overflowedView.y),
+        collapseCb: () => (position = null),
+      });
 
-      const shouldExpandBottomMap =
-        dirY === 1 && isBottomExceed && !this.overflowedView.y;
-      const shouldCollapseBottomMap =
-        dirY === -1 && !isBottomExceed && this.overflowedView.y > 0;
+      const isRightExceed =
+        this.player.x + dirX + this.blockToRender.x >= this.maps[0].length;
+      const isLeftExceed = this.player.x + dirX - this.blockToRender.x < 0;
+      await this.handleMapOverflow({
+        axis: "x",
+        dir: dirX,
+        isStartMapExceed: isLeftExceed,
+        isEndMapExceed: isRightExceed,
+        expandCb: () => (position.x -= this.overflowedView.x),
+        collapseCb: () => (position = null),
+      });
 
-      if (shouldExpandTopMap || shouldExpandBottomMap) {
-        this.overflowedView.y += this.getViewBoxRemainder.y * dirY;
-        position.y -= this.overflowedView.y;
-        await this.moveMapOverflow({ x: 0, y: this.overflowedView.y });
-      } else if (shouldCollapseTopMap || shouldCollapseBottomMap) {
-        position = null;
-        await Promise.all([
-          this.moveMapOverflow({ x: 0, y: this.overflowedView.y * -1 }),
-          this.player.animateMovement({
-            x: 0,
-            y: this.getViewBoxRemainder.y * dirY,
-          }),
-        ]);
-        this.overflowedView.y = 0;
-      }
+      // const shouldExpandTopMap =
+      //   dirY === -1 && isTopExceed && !this.overflowedView.y;
+      // const shouldCollapseTopMap =
+      //   dirY === 1 && !isTopExceed && this.overflowedView.y < 0;
+
+      // const shouldExpandBottomMap =
+      //   dirY === 1 && isBottomExceed && !this.overflowedView.y;
+      // const shouldCollapseBottomMap =
+      //   dirY === -1 && !isBottomExceed && this.overflowedView.y > 0;
+
+      // if (shouldExpandTopMap || shouldExpandBottomMap) {
+      //   this.overflowedView.y += this.getViewBoxRemainder.y * dirY;
+      //   position.y -= this.overflowedView.y;
+      //   await this.moveMapOverflow({ x: 0, y: this.overflowedView.y });
+      // } else if (shouldCollapseTopMap || shouldCollapseBottomMap) {
+      //   position = null;
+      //   await Promise.all([
+      //     this.moveMapOverflow({ x: 0, y: this.overflowedView.y * -1 }),
+      //     this.player.animateMovement({
+      //       x: 0,
+      //       y: this.getViewBoxRemainder.y * dirY,
+      //     }),
+      //   ]);
+      //   this.overflowedView.y = 0;
+      // }
 
       // if (shouldExpandTopMap || shouldCollapseTopMap) {
       //   if (shouldExpandTopMap) {
@@ -189,34 +235,34 @@ class TypingMaze {
       //   }
       // }
 
-      const shouldExpandLeftMap =
-        dirX === -1 && isLeftExceed && !this.overflowedView.x;
-      const shouldCollapseLeftMap =
-        dirX === 1 && !isLeftExceed && this.overflowedView.x < 0;
+      // const shouldExpandLeftMap =
+      //   dirX === -1 && isLeftExceed && !this.overflowedView.x;
+      // const shouldCollapseLeftMap =
+      //   dirX === 1 && !isLeftExceed && this.overflowedView.x < 0;
 
-      const shouldExpandRightMap =
-        dirX === 1 && isRightExceed && !this.overflowedView.x;
-      const shouldCollapseRightMap =
-        dirX === -1 && !isRightExceed && this.overflowedView.x > 0;
+      // const shouldExpandRightMap =
+      //   dirX === 1 && isRightExceed && !this.overflowedView.x;
+      // const shouldCollapseRightMap =
+      //   dirX === -1 && !isRightExceed && this.overflowedView.x > 0;
 
-      if (shouldExpandLeftMap || shouldExpandRightMap) {
-        this.overflowedView.x += this.getViewBoxRemainder.x * dirX;
-        position.x -= this.overflowedView.x;
-        await this.moveMapOverflow({ x: this.overflowedView.x, y: 0 });
-      } else if (shouldCollapseLeftMap || shouldCollapseRightMap) {
-        position = null;
-        await Promise.all([
-          await this.moveMapOverflow({
-            x: this.overflowedView.x * -1,
-            y: 0,
-          }),
-          this.player.animateMovement({
-            x: this.getViewBoxRemainder.x * dirX,
-            y: 0,
-          }),
-        ]);
-        this.overflowedView.x = 0;
-      }
+      // if (shouldExpandLeftMap || shouldExpandRightMap) {
+      //   this.overflowedView.x += this.getViewBoxRemainder.x * dirX;
+      //   position.x -= this.overflowedView.x;
+      //   await this.moveMapOverflow({ x: this.overflowedView.x, y: 0 });
+      // } else if (shouldCollapseLeftMap || shouldCollapseRightMap) {
+      //   position = null;
+      //   await Promise.all([
+      //     await this.moveMapOverflow({
+      //       x: this.overflowedView.x * -1,
+      //       y: 0,
+      //     }),
+      //     this.player.animateMovement({
+      //       x: this.getViewBoxRemainder.x * dirX,
+      //       y: 0,
+      //     }),
+      //   ]);
+      //   this.overflowedView.x = 0;
+      // }
 
       // if (
       //   (dirX === -1 && isLeftExceed && !this.overflowedView.x) ||
@@ -262,9 +308,9 @@ class TypingMaze {
       //   }
       // }
 
-      await this.player.move(eventMap[event.code], position);
+      await this.player.move(keyCode, position);
       if (!needChangePosition) {
-        await this.moveViewBoxMap(eventMap[event.code]);
+        await this.moveViewBoxMap(keyCode);
       }
 
       this.isAnimating = false;
