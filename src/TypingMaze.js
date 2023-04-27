@@ -223,8 +223,6 @@ class TypingMaze {
             Math.ceil(Math.abs(distance / this.cellSize)) *
             Math.sign(distance) *
             -1;
-          // const exceedTolerance =
-          //   (this.player.distanceToCenter.x / this.cellSize) * -1;
 
           const nextX = this.blockToRender.x - x;
           const dX = this.player.x + exceedTolerance - nextX;
@@ -248,16 +246,8 @@ class TypingMaze {
       for (let x = 0; x < blockToRender.x * 2 + 1; x++) {
         if (targetX !== 0 && !this.extenderCells.length) {
           const row = [];
-          // const nextX = this.player.x + (this.blockToRender.x - x) * targetX;
           const nextX = this.player.x + blockToRender.x * targetX;
-
           for (let tempY = 0; tempY < blockToRender.y * 2 + 1; tempY++) {
-            // either ceil or floor
-            // ceil for upper, floor for lower
-            // const exceedTolerance = Math.ceil(
-            //   (this.player.distanceToCenter.y / this.cellSize) * -1
-            // );
-
             const distance = this.player.distanceToCenter.y;
             const exceedTolerance =
               Math.ceil(Math.abs(distance / this.cellSize)) *
@@ -283,7 +273,6 @@ class TypingMaze {
           this.extenderCells.push(row);
         }
 
-        // this.cells[y][x].move({ x: targetX * -1, y: targetY * -1 });
         animationQueue.push(
           this.cells[y][x].move({ x: targetX * -1, y: targetY * -1 })
         );
@@ -316,7 +305,6 @@ class TypingMaze {
   }
   async moveMapOverflow({ x, y }) {
     const animationQueue = [];
-
     for (const row of this.cells) {
       for (const cell of row) {
         animationQueue.push(
@@ -327,7 +315,6 @@ class TypingMaze {
         );
       }
     }
-
     await Promise.all(animationQueue);
   }
   drawMap() {
