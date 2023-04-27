@@ -57,10 +57,9 @@ class TypingMaze {
       position: this.centerPoint,
       width: this.cellSize,
     });
+
     this.setViewBox();
-
     this.listener();
-
     this.render();
   }
   setViewBox() {
@@ -87,14 +86,13 @@ class TypingMaze {
       (!this.player.isCenterX && dirX !== 0)
     );
   }
-  async handleMapOverflow({
-    axis,
-    dir,
-    isStartMapExceed,
-    isEndMapExceed,
-    expandCb,
-    collapseCb,
-  }) {
+  async handleMapOverflow({ axis, dir, expandCb, collapseCb }) {
+    const isStartMapExceed =
+      this.player[axis] + dir - this.blockToRender[axis] < 0;
+    const isEndMapExceed =
+      this.player[axis] + dir + this.blockToRender[axis] >=
+      (axis === "y" ? this.maps.length : this.maps[0].length);
+
     const position = { x: 0, y: 0 };
 
     const overflowed = this.overflowedView[axis];
@@ -150,169 +148,32 @@ class TypingMaze {
       }
 
       this.isAnimating = true;
+      const animationQueue = [];
 
-      const isTopExceed = this.player.y + dirY - this.blockToRender.y < 0;
-      const isBottomExceed =
-        this.player.y + dirY + this.blockToRender.y >= this.maps.length;
-      await this.handleMapOverflow({
-        axis: "y",
-        dir: dirY,
-        isStartMapExceed: isTopExceed,
-        isEndMapExceed: isBottomExceed,
-        expandCb: () => (position.y -= this.overflowedView.y),
-        collapseCb: () => (position = null),
-      });
+      animationQueue.push(
+        this.handleMapOverflow({
+          axis: "y",
+          dir: dirY,
+          expandCb: () => (position.y -= this.overflowedView.y),
+          collapseCb: () => (position = null),
+        })
+      );
 
-      const isRightExceed =
-        this.player.x + dirX + this.blockToRender.x >= this.maps[0].length;
-      const isLeftExceed = this.player.x + dirX - this.blockToRender.x < 0;
-      await this.handleMapOverflow({
-        axis: "x",
-        dir: dirX,
-        isStartMapExceed: isLeftExceed,
-        isEndMapExceed: isRightExceed,
-        expandCb: () => (position.x -= this.overflowedView.x),
-        collapseCb: () => (position = null),
-      });
+      animationQueue.push(
+        this.handleMapOverflow({
+          axis: "x",
+          dir: dirX,
+          expandCb: () => (position.x -= this.overflowedView.x),
+          collapseCb: () => (position = null),
+        })
+      );
 
-      // const shouldExpandTopMap =
-      //   dirY === -1 && isTopExceed && !this.overflowedView.y;
-      // const shouldCollapseTopMap =
-      //   dirY === 1 && !isTopExceed && this.overflowedView.y < 0;
-
-      // const shouldExpandBottomMap =
-      //   dirY === 1 && isBottomExceed && !this.overflowedView.y;
-      // const shouldCollapseBottomMap =
-      //   dirY === -1 && !isBottomExceed && this.overflowedView.y > 0;
-
-      // if (shouldExpandTopMap || shouldExpandBottomMap) {
-      //   this.overflowedView.y += this.getViewBoxRemainder.y * dirY;
-      //   position.y -= this.overflowedView.y;
-      //   await this.moveMapOverflow({ x: 0, y: this.overflowedView.y });
-      // } else if (shouldCollapseTopMap || shouldCollapseBottomMap) {
-      //   position = null;
-      //   await Promise.all([
-      //     this.moveMapOverflow({ x: 0, y: this.overflowedView.y * -1 }),
-      //     this.player.animateMovement({
-      //       x: 0,
-      //       y: this.getViewBoxRemainder.y * dirY,
-      //     }),
-      //   ]);
-      //   this.overflowedView.y = 0;
-      // }
-
-      // if (shouldExpandTopMap || shouldCollapseTopMap) {
-      //   if (shouldExpandTopMap) {
-      //     this.overflowedView.y += this.getViewBoxRemainder.y * dirY;
-      //     position.y -= this.overflowedView.y;
-      //     await this.moveMapOverflow({ x: 0, y: this.overflowedView.y });
-      //   } else {
-      //     position = null;
-      //     await Promise.all([
-      //       this.moveMapOverflow({ x: 0, y: this.overflowedView.y * -1 }),
-      //       this.player.animateMovement({
-      //         x: 0,
-      //         y: this.getViewBoxRemainder.y * dirY,
-      //       }),
-      //     ]);
-      //     this.overflowedView.y = 0;
-      //   }
-      // } else if (shouldExpandBottomMap || shouldCollapseBottomMap) {
-      //   if (shouldExpandBottomMap) {
-      //     this.overflowedView.y += this.getViewBoxRemainder.y * dirY;
-      //     position.y -= this.overflowedView.y;
-      //     this.moveMapOverflow({ x: 0, y: this.overflowedView.y });
-      //   } else {
-      //     position = null;
-      //     await Promise.all([
-      //       this.moveMapOverflow({ x: 0, y: this.overflowedView.y * -1 }),
-      //       this.player.animateMovement({
-      //         x: 0,
-      //         y: this.getViewBoxRemainder.y * dirY,
-      //       }),
-      //     ]);
-      //     this.overflowedView.y = 0;
-      //   }
-      // }
-
-      // const shouldExpandLeftMap =
-      //   dirX === -1 && isLeftExceed && !this.overflowedView.x;
-      // const shouldCollapseLeftMap =
-      //   dirX === 1 && !isLeftExceed && this.overflowedView.x < 0;
-
-      // const shouldExpandRightMap =
-      //   dirX === 1 && isRightExceed && !this.overflowedView.x;
-      // const shouldCollapseRightMap =
-      //   dirX === -1 && !isRightExceed && this.overflowedView.x > 0;
-
-      // if (shouldExpandLeftMap || shouldExpandRightMap) {
-      //   this.overflowedView.x += this.getViewBoxRemainder.x * dirX;
-      //   position.x -= this.overflowedView.x;
-      //   await this.moveMapOverflow({ x: this.overflowedView.x, y: 0 });
-      // } else if (shouldCollapseLeftMap || shouldCollapseRightMap) {
-      //   position = null;
-      //   await Promise.all([
-      //     await this.moveMapOverflow({
-      //       x: this.overflowedView.x * -1,
-      //       y: 0,
-      //     }),
-      //     this.player.animateMovement({
-      //       x: this.getViewBoxRemainder.x * dirX,
-      //       y: 0,
-      //     }),
-      //   ]);
-      //   this.overflowedView.x = 0;
-      // }
-
-      // if (
-      //   (dirX === -1 && isLeftExceed && !this.overflowedView.x) ||
-      //   (dirX === 1 && !isLeftExceed && this.overflowedView.x < 0)
-      // ) {
-      //   if (dirX === -1 && isLeftExceed && !this.overflowedView.x) {
-      //     this.overflowedView.x += this.getViewBoxRemainder.x * dirX;
-      //     position.x -= this.overflowedView.x;
-      //     // await this.moveMapOverflow();
-      //     await this.moveMapOverflow({ x: this.overflowedView.x, y: 0 });
-      //   } else {
-      //     position = null;
-      //     await Promise.all([
-      //       // this.moveMapOverflow(true),
-      //       await this.moveMapOverflow({ x: this.overflowedView.x * -1, y: 0 }),
-      //       this.player.animateMovement({
-      //         x: this.getViewBoxRemainder.x * dirX,
-      //         y: 0,
-      //       }),
-      //     ]);
-      //     this.overflowedView.x = 0;
-      //   }
-      // } else if (
-      //   (dirX === 1 && isRightExceed && !this.overflowedView.x) ||
-      //   (dirX === -1 && !isRightExceed && this.overflowedView.x > 0)
-      // ) {
-      //   if (dirX === 1 && isRightExceed && !this.overflowedView.x) {
-      //     this.overflowedView.x += this.getViewBoxRemainder.x * dirX;
-      //     position.x -= this.overflowedView.x;
-      //     // await this.moveMapOverflow();
-      //     await this.moveMapOverflow({ x: this.overflowedView.x, y: 0 });
-      //   } else {
-      //     position = null;
-      //     await Promise.all([
-      //       // this.moveMapOverflow(true),
-      //       this.moveMapOverflow({ x: this.overflowedView.x * -1, y: 0 }),
-      //       this.player.animateMovement({
-      //         x: this.getViewBoxRemainder.x * dirX,
-      //         y: 0,
-      //       }),
-      //     ]);
-      //     this.overflowedView.x = 0;
-      //   }
-      // }
-
-      await this.player.move(keyCode, position);
+      animationQueue.push(this.player.move(keyCode, position));
       if (!needChangePosition) {
-        await this.moveViewBoxMap(keyCode);
+        animationQueue.push(this.moveViewBoxMap(keyCode));
       }
 
+      await Promise.all(animationQueue);
       this.isAnimating = false;
     });
   }
@@ -323,31 +184,6 @@ class TypingMaze {
   initViewBoxMap() {
     const { x: centerX, y: centerY } = this.centerPoint;
     const blockToRender = this.blockToRender;
-
-    // this.cells = [];
-    // const data = [];
-    // for (let y = blockToRender.y * 2 + 1; y > 0; y--) {
-    //   const row = [];
-    //   const prevY = this.player.y - (blockToRender.y - y) - 1;
-
-    //   if (prevY < 0 || prevY > this.maps.length - 1) continue;
-    //   for (let x = blockToRender.x * 2 + 1; x > 0; x--) {
-    //     const prevX = this.player.x - (blockToRender.x - x) - 1;
-    //     if (prevX < 0 || prevX > this.maps[0].length - 1) continue;
-
-    //     const col = new Cell({
-    //       ctx: this.ctx,
-    //       width: this.cellSize,
-    //       x: centerX - this.cellSize * (blockToRender.x - x + 1),
-    //       y: centerY - this.cellSize * (blockToRender.y - y + 1),
-    //       value: this.maps[prevY][prevX],
-    //       color: this.maps[prevY][prevX] === this.wall ? "#ffba00" : "#fff3d2",
-    //     });
-    //     row.push(col);
-    //   }
-    //   this.cells.push(row);
-    //   data.push(row);
-    // }
 
     for (let y = 0; y < blockToRender.y * 2 + 1; y++) {
       const row = [];
@@ -368,15 +204,10 @@ class TypingMaze {
       this.cells.push(row);
     }
 
-    // console.log(this.cells);
     console.log(this.cells.map((row) => row.map((cell) => cell.value)));
     console.log(JSON.parse(JSON.stringify(this.cells)));
-    // console.log(data);
   }
   async moveViewBoxMap({ x: targetX, y: targetY }) {
-    // this.isAnimating = true;
-    let skipRender = false;
-
     const animationQueue = [];
 
     const { x: centerX, y: centerY } = this.centerPoint;
@@ -460,7 +291,6 @@ class TypingMaze {
     }
 
     await Promise.all(animationQueue);
-    // this.isAnimating = false;
 
     if (targetY !== 0) {
       if (targetY === 1) {
@@ -482,10 +312,6 @@ class TypingMaze {
       }
     }
 
-    // console.log(JSON.parse(JSON.stringify(this.extenderCells)));
-
-    // console.log(this.cells.map((row) => row.map((cell) => cell.value)));
-    // console.log(JSON.parse(JSON.stringify(this.cells)));
     this.extenderCells = [];
   }
   async moveMapOverflow({ x, y }) {
@@ -504,27 +330,6 @@ class TypingMaze {
 
     await Promise.all(animationQueue);
   }
-  // async moveMapOverflow(isRevert = false) {
-  //   const animationQueue = [];
-
-  //   for (const row of this.cells) {
-  //     for (const cell of row) {
-  //       const { x: overflowX, y: overflowY } = this.overflowedView;
-  //       const revertDir = isRevert ? -1 : 1;
-  //       const x = overflowX * -1 * revertDir;
-  //       const y = overflowY * -1 * revertDir;
-
-  //       animationQueue.push(
-  //         cell.move({
-  //           x: x / this.cellSize,
-  //           y: y / this.cellSize,
-  //         })
-  //       );
-  //     }
-  //   }
-
-  //   await Promise.all(animationQueue);
-  // }
   drawMap() {
     for (const row of this.extenderCells) {
       for (const cell of row) {
