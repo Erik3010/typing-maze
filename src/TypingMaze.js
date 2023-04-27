@@ -1,5 +1,6 @@
 import Player from "./Player";
 import Cell from "./Cell";
+import { getWords, random } from "./utility";
 
 class TypingMaze {
   constructor({ canvas }) {
@@ -41,12 +42,15 @@ class TypingMaze {
     };
 
     this.player = null;
-
     this.isAnimating = false;
-
     this.overflowedView = { x: 0, y: 0 };
+
+    this.wordsMap = Array.from({ length: this.maps.length }, () =>
+      Array(this.maps[0].length).fill(null)
+    );
+    this.availableWords = [];
   }
-  init() {
+  async init() {
     console.log("init");
 
     const { x, y } = this.playerInitialPosition;
@@ -61,6 +65,46 @@ class TypingMaze {
     this.setViewBox();
     this.listener();
     this.render();
+
+    this.availableWords = await getWords();
+    console.log(this.availableWords);
+
+    this.initWordsMap();
+  }
+  initWordsMap() {
+    const directions = [
+      [0, 1],
+      [0, -1],
+      [1, 0],
+      [-1, 0],
+    ];
+
+    const inMap = ({ x, y }) =>
+      x >= 0 && x < this.maps[0].length && y >= 0 && y < this.maps.length;
+
+    const hasSameWordArounds = ({ x, y }, word) => {
+      for (const [dirX, dirY] of directions) {
+        const { x: nextX, y: nextY } = { x: x + dirX, y: y + dirY };
+        if (!inMap({ x: nextX, y: nextY })) continue;
+
+        return this.wordsMap[nextY][nextX] === word;
+      }
+      return false;
+    };
+
+    for (const [rowIndex, row] of this.wordsMap.entries()) {
+      for (const [colIndex, col] of row.entries()) {
+        if (this.maps[rowIndex][colIndex] === this.wall) continue;
+
+        let word;
+        do {
+          word = this.availableWords[random(0, this.availableWords.length - 1)];
+        } while (hasSameWordArounds({ x: col, y: row }, word));
+        this.wordsMap[rowIndex][colIndex] = word;
+      }
+    }
+
+    console.log(this.wordsMap);
   }
   setViewBox() {
     const startX = (this.canvas.width - this.cellSize) / 2;
@@ -190,13 +234,10 @@ class TypingMaze {
       const nextY = this.player.y - (blockToRender.y - y);
       for (let x = 0; x < blockToRender.x * 2 + 1; x++) {
         const nextX = this.player.x - (blockToRender.x - x);
-        const cell = new Cell({
-          ctx: this.ctx,
-          width: this.cellSize,
+        const cell = this.createCell({
           x: centerX + (x - blockToRender.x) * this.cellSize,
           y: centerY + (y - blockToRender.y) * this.cellSize,
           value: this.maps[nextY][nextX],
-          color: this.maps[nextY][nextX] === this.wall ? "#ffba00" : "#fff3d2",
         });
 
         row.push(cell);
@@ -226,16 +267,13 @@ class TypingMaze {
 
           const nextX = this.blockToRender.x - x;
           const dX = this.player.x + exceedTolerance - nextX;
-          const cell = new Cell({
-            ctx: this.ctx,
+          const cell = this.createCell({
             x:
               centerX +
               (x - blockToRender.x) * this.cellSize -
               this.overflowedView.x,
             y: centerY + blockToRender.y * this.cellSize * targetY,
-            width: this.cellSize,
             value: this.maps[nextY][dX],
-            color: this.maps[nextY][dX] === this.wall ? "#ffba00" : "#fff3d2",
           });
 
           row.push(cell);
@@ -257,16 +295,13 @@ class TypingMaze {
             const dY =
               this.player.y + exceedTolerance - (blockToRender.y - tempY);
 
-            const cell = new Cell({
-              ctx: this.ctx,
+            const cell = this.createCell({
               x: centerX + blockToRender.x * targetX * this.cellSize,
               y:
                 centerY +
                 (tempY - blockToRender.y) * this.cellSize -
                 this.overflowedView.y,
-              width: this.cellSize,
               value: this.maps[dY][nextX],
-              color: this.maps[dY][nextX] === this.wall ? "#ffba00" : "#fff3d2",
             });
             row.push(cell);
           }
@@ -316,6 +351,9 @@ class TypingMaze {
       }
     }
     await Promise.all(animationQueue);
+  }
+  createCell({ x, y, value }) {
+    return new Cell({ x, y, value, ctx: this.ctx, width: this.cellSize });
   }
   drawMap() {
     for (const row of this.extenderCells) {
