@@ -1,4 +1,5 @@
 import { easeAnimation } from "./utility";
+import { WALL } from "./constants";
 
 class Cell {
   constructor({ ctx, x, y, width, value, coordinate, word }) {
@@ -11,7 +12,7 @@ class Cell {
     this.coordinate = coordinate;
     this.word = word;
 
-    this.color = this.value === 1 ? "#ffba00" : "#fff3d2";
+    this.color = this.value === WALL ? "#ffba00" : "#fff3d2";
 
     this.currentFrame = 0;
     this.step = 12;

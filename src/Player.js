@@ -15,6 +15,9 @@ class Player {
 
     this.currentFrame = 0;
     this.step = 12;
+
+    this.text = "";
+    this.fontSize = 16;
   }
   get isCenterX() {
     return this.distanceToCenter.x === this.centerCoordinate;
@@ -26,10 +29,26 @@ class Player {
     return this.isCenterX && this.isCenterY;
   }
   draw() {
+    this.drawPlayer();
+    this.drawText();
+  }
+  drawPlayer() {
     this.ctx.beginPath();
     this.ctx.fillStyle = "#ff0000";
     this.ctx.fillRect(this.position.x, this.position.y, this.width, this.width);
     this.ctx.closePath();
+  }
+  drawText() {
+    this.ctx.font = `${this.fontSize}px Arial`;
+    this.ctx.fillStyle = "#000";
+
+    const { width } = this.ctx.measureText(this.text);
+
+    this.ctx.fillText(
+      this.text,
+      this.position.x + this.width / 2 - width / 2,
+      this.position.y + this.width / 2 + this.fontSize / 2
+    );
   }
   async move({ x, y }, position) {
     if (position) {

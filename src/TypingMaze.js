@@ -1,6 +1,7 @@
 import Player from "./Player";
 import Cell from "./Cell";
 import { getWords, random } from "./utility";
+import { DIRECTIONS, WALL } from "./constants";
 
 class TypingMaze {
   constructor({ canvas }) {
@@ -8,7 +9,6 @@ class TypingMaze {
     this.ctx = canvas.getContext("2d");
 
     this.path = 0;
-    this.wall = 1;
 
     this.maps = [
       [1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
@@ -49,6 +49,10 @@ class TypingMaze {
       Array(this.maps[0].length).fill(null)
     );
     this.availableWords = [];
+
+    this.currentTypingValue = "";
+
+    this.isDevMode = false;
   }
   async init() {
     console.log("init");
@@ -70,21 +74,10 @@ class TypingMaze {
     this.render();
   }
   initWordsMap() {
-    const directions = [
-      [0, 1],
-      [0, -1],
-      [1, 0],
-      [-1, 0],
-    ];
-
-    const inMap = ({ x, y }) =>
-      x >= 0 && x < this.maps[0].length && y >= 0 && y < this.maps.length;
-
     const hasSameWordArounds = ({ x, y }, word) => {
-      for (const [dirX, dirY] of directions) {
+      for (const [dirX, dirY] of DIRECTIONS) {
         const { x: nextX, y: nextY } = { x: x + dirX, y: y + dirY };
-        if (!inMap({ x: nextX, y: nextY })) continue;
-
+        if (!this.isValidCoordinate({ x: nextX, y: nextY })) continue;
         if (this.wordsMap[nextY][nextX] === word) return true;
       }
       return false;
@@ -92,7 +85,7 @@ class TypingMaze {
 
     for (const [rowIndex, row] of this.wordsMap.entries()) {
       for (const [colIndex, col] of row.entries()) {
-        if (this.maps[rowIndex][colIndex] === this.wall) continue;
+        if (this.maps[rowIndex][colIndex] === WALL) continue;
 
         let word;
         do {
@@ -170,58 +163,94 @@ class TypingMaze {
     }
   }
   listener() {
-    const eventMap = {
-      ArrowUp: { x: 0, y: -1 },
-      ArrowDown: { x: 0, y: 1 },
-      ArrowLeft: { x: -1, y: 0 },
-      ArrowRight: { x: 1, y: 0 },
-    };
     window.addEventListener("keydown", async (event) => {
-      if (!Object.keys(eventMap).includes(event.code) || this.isAnimating)
-        return;
+      const alphabet = [...Array(26)].map((_, i) =>
+        String.fromCharCode(i + "a".charCodeAt())
+      );
+      const key = event.key.toLowerCase();
 
-      const keyCode = eventMap[event.code];
-      const { x: dirX, y: dirY } = keyCode;
-      const needChangePosition = this.needChangePlayerPosition(keyCode);
+      if (alphabet.indexOf(key) !== -1) {
+        this.currentTypingValue += key;
+      } else {
+        if (key === " ") {
+          for (const [dirX, dirY] of DIRECTIONS) {
+            const { x: nextX, y: nextY } = {
+              x: this.player.x + dirX,
+              y: this.player.y + dirY,
+            };
+            if (!this.isValidCoordinate({ x: nextX, y: nextY })) continue;
 
-      let position = null;
-      if (needChangePosition) {
-        position = { x: this.cellSize * dirX, y: this.cellSize * dirY };
+            if (this.wordsMap[nextY][nextX] === this.currentTypingValue) {
+              this.currentTypingValue = "";
+
+              await this.handlePlayerMovement({ x: dirX, y: dirY });
+            }
+          }
+        } else if (key === "backspace") {
+          const value = this.currentTypingValue;
+          this.currentTypingValue = value.substring(0, value.length - 1);
+        }
       }
 
-      this.isAnimating = true;
-      const animationQueue = [];
+      if (this.isDevMode) {
+        const eventMap = {
+          ArrowUp: { x: 0, y: -1 },
+          ArrowDown: { x: 0, y: 1 },
+          ArrowLeft: { x: -1, y: 0 },
+          ArrowRight: { x: 1, y: 0 },
+        };
+        if (!Object.keys(eventMap).includes(event.code) || this.isAnimating)
+          return;
 
-      animationQueue.push(
-        this.handleMapOverflow({
-          axis: "y",
-          dir: dirY,
-          expandCb: () => (position.y -= this.overflowedView.y),
-          collapseCb: () => (position = null),
-        })
-      );
-
-      animationQueue.push(
-        this.handleMapOverflow({
-          axis: "x",
-          dir: dirX,
-          expandCb: () => (position.x -= this.overflowedView.x),
-          collapseCb: () => (position = null),
-        })
-      );
-
-      animationQueue.push(this.player.move(keyCode, position));
-      if (!needChangePosition) {
-        animationQueue.push(this.moveViewBoxMap(keyCode));
+        await this.handlePlayerMovement(eventMap[event.code]);
       }
-
-      await Promise.all(animationQueue);
-      this.isAnimating = false;
     });
+  }
+  async handlePlayerMovement(direction) {
+    if (this.isAnimating) return;
+
+    const { x: dirX, y: dirY } = direction;
+    const needChangePosition = this.needChangePlayerPosition(direction);
+
+    let position = null;
+    if (needChangePosition) {
+      position = { x: this.cellSize * dirX, y: this.cellSize * dirY };
+    }
+
+    this.isAnimating = true;
+    const animationQueue = [];
+
+    animationQueue.push(
+      this.handleMapOverflow({
+        axis: "y",
+        dir: dirY,
+        expandCb: () => (position.y -= this.overflowedView.y),
+        collapseCb: () => (position = null),
+      })
+    );
+
+    animationQueue.push(
+      this.handleMapOverflow({
+        axis: "x",
+        dir: dirX,
+        expandCb: () => (position.x -= this.overflowedView.x),
+        collapseCb: () => (position = null),
+      })
+    );
+
+    animationQueue.push(this.player.move(direction, position));
+    if (!needChangePosition) {
+      animationQueue.push(this.moveViewBoxMap(direction));
+    }
+
+    await Promise.all(animationQueue);
+    this.isAnimating = false;
   }
   draw() {
     this.drawMap();
     this.player.draw();
+
+    this.player.text = this.currentTypingValue;
   }
   initViewBoxMap() {
     const { x: centerX, y: centerY } = this.centerPoint;
@@ -384,7 +413,7 @@ class TypingMaze {
     // for (const [y, row] of this.maps.entries()) {
     //   for (const [x, col] of row.entries()) {
     //     this.ctx.beginPath();
-    //     this.ctx.fillStyle = col === this.wall ? "#ffba00" : "#fff3d2";
+    //     this.ctx.fillStyle = col === WALL ? "#ffba00" : "#fff3d2";
     //     this.ctx.strokeStyle = "#000";
     //     this.ctx.rect(
     //       x * this.cellSize,
@@ -397,6 +426,9 @@ class TypingMaze {
     //     this.ctx.closePath();
     //   }
     // }
+  }
+  isValidCoordinate({ x, y }) {
+    return x >= 0 && x < this.maps[0].length && y >= 0 && y < this.maps.length;
   }
   get centerPoint() {
     return {
