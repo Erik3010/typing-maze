@@ -1,19 +1,40 @@
 import { easeAnimation } from "./utility";
 
 class Cell {
-  constructor({ ctx, x, y, width, value }) {
+  constructor({ ctx, x, y, width, value, coordinate, word }) {
     this.ctx = ctx;
     this.x = x;
     this.y = y;
     this.width = width;
     this.value = value;
 
+    this.coordinate = coordinate;
+    this.word = word;
+
     this.color = this.value === 1 ? "#ffba00" : "#fff3d2";
 
     this.currentFrame = 0;
     this.step = 12;
+
+    this.fontSize = 16;
   }
   draw() {
+    this.drawCell();
+
+    this.word && this.drawText();
+  }
+  drawText() {
+    this.ctx.font = `${this.fontSize}px Arial`;
+    this.ctx.fillStyle = "#000";
+
+    const text = this.ctx.measureText(this.word);
+    this.ctx.fillText(
+      this.word,
+      this.x + this.width / 2 - text.width / 2,
+      this.y + this.width / 2 + this.fontSize / 2
+    );
+  }
+  drawCell() {
     this.ctx.beginPath();
     this.ctx.fillStyle = this.color;
     this.ctx.strokeStyle = "#000";

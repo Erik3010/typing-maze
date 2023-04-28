@@ -62,14 +62,12 @@ class TypingMaze {
       width: this.cellSize,
     });
 
+    this.availableWords = await getWords();
+    this.initWordsMap();
+
     this.setViewBox();
     this.listener();
     this.render();
-
-    this.availableWords = await getWords();
-    console.log(this.availableWords);
-
-    this.initWordsMap();
   }
   initWordsMap() {
     const directions = [
@@ -87,7 +85,7 @@ class TypingMaze {
         const { x: nextX, y: nextY } = { x: x + dirX, y: y + dirY };
         if (!inMap({ x: nextX, y: nextY })) continue;
 
-        return this.wordsMap[nextY][nextX] === word;
+        if (this.wordsMap[nextY][nextX] === word) return true;
       }
       return false;
     };
@@ -99,7 +97,7 @@ class TypingMaze {
         let word;
         do {
           word = this.availableWords[random(0, this.availableWords.length - 1)];
-        } while (hasSameWordArounds({ x: col, y: row }, word));
+        } while (hasSameWordArounds({ x: colIndex, y: rowIndex }, word));
         this.wordsMap[rowIndex][colIndex] = word;
       }
     }
@@ -238,6 +236,7 @@ class TypingMaze {
           x: centerX + (x - blockToRender.x) * this.cellSize,
           y: centerY + (y - blockToRender.y) * this.cellSize,
           value: this.maps[nextY][nextX],
+          coordinate: { x: nextX, y: nextY },
         });
 
         row.push(cell);
@@ -274,6 +273,7 @@ class TypingMaze {
               this.overflowedView.x,
             y: centerY + blockToRender.y * this.cellSize * targetY,
             value: this.maps[nextY][dX],
+            coordinate: { x: dX, y: nextY },
           });
 
           row.push(cell);
@@ -302,6 +302,7 @@ class TypingMaze {
                 (tempY - blockToRender.y) * this.cellSize -
                 this.overflowedView.y,
               value: this.maps[dY][nextX],
+              coordinate: { x: nextX, y: dY },
             });
             row.push(cell);
           }
@@ -352,8 +353,16 @@ class TypingMaze {
     }
     await Promise.all(animationQueue);
   }
-  createCell({ x, y, value }) {
-    return new Cell({ x, y, value, ctx: this.ctx, width: this.cellSize });
+  createCell({ x, y, value, coordinate }) {
+    return new Cell({
+      x,
+      y,
+      value,
+      coordinate,
+      ctx: this.ctx,
+      width: this.cellSize,
+      word: this.wordsMap[coordinate.y][coordinate.x],
+    });
   }
   drawMap() {
     for (const row of this.extenderCells) {
