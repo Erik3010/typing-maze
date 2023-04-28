@@ -187,8 +187,12 @@ class TypingMaze {
             }
           }
         } else if (key === "backspace") {
-          const value = this.currentTypingValue;
-          this.currentTypingValue = value.substring(0, value.length - 1);
+          if (event.ctrlKey) {
+            this.currentTypingValue = "";
+          } else {
+            const value = this.currentTypingValue;
+            this.currentTypingValue = value.substring(0, value.length - 1);
+          }
         }
       }
 
