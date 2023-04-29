@@ -95,7 +95,7 @@ class TypingMaze {
       }
     }
 
-    console.log(this.wordsMap);
+    // console.log(this.wordsMap);
   }
   setViewBox() {
     const startX = (this.canvas.width - this.cellSize) / 2;
