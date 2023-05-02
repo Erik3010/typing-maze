@@ -2,6 +2,7 @@ import Player from "./Player";
 import Cell from "./Cell";
 import { getWords, random } from "./utility";
 import { DIRECTIONS, DIRECTIONS_WITH_DIAGONAL, WALL } from "./constants";
+import Arrow from "./Arrow";
 
 class TypingMaze {
   constructor({ canvas }) {
@@ -52,6 +53,8 @@ class TypingMaze {
 
     this.currentTypingValue = "";
 
+    this.arrow = null;
+
     this.isDevMode = false;
   }
   async init() {
@@ -64,6 +67,12 @@ class TypingMaze {
       y: y,
       position: this.centerPoint,
       width: this.cellSize,
+    });
+
+    this.arrow = new Arrow({
+      ctx: this.ctx,
+      x: this.canvas.width - 100,
+      y: this.canvas.height - 100,
     });
 
     this.availableWords = await getWords();
@@ -250,6 +259,7 @@ class TypingMaze {
   draw() {
     this.drawMap();
     this.player.draw();
+    this.arrow.draw();
 
     this.player.text = this.currentTypingValue;
   }
