@@ -1,7 +1,7 @@
 import Player from "./Player";
 import Cell from "./Cell";
 import { getWords, random } from "./utility";
-import { DIRECTIONS, WALL } from "./constants";
+import { DIRECTIONS, DIRECTIONS_WITH_DIAGONAL, WALL } from "./constants";
 
 class TypingMaze {
   constructor({ canvas }) {
@@ -75,7 +75,7 @@ class TypingMaze {
   }
   initWordsMap() {
     const hasSameWordArounds = ({ x, y }, word) => {
-      for (const [dirX, dirY] of DIRECTIONS) {
+      for (const [dirX, dirY] of DIRECTIONS_WITH_DIAGONAL) {
         const { x: nextX, y: nextY } = { x: x + dirX, y: y + dirY };
         if (!this.isValidCoordinate({ x: nextX, y: nextY })) continue;
         if (this.wordsMap[nextY][nextX] === word) return true;
