@@ -102,7 +102,6 @@ class TypingMaze {
     this.viewBox.x = startX;
     this.viewBox.y = startY;
 
-    console.log(this.viewBox);
     this.initViewBoxMap();
   }
   needChangePlayerPosition({ x: dirX, y: dirY }) {
