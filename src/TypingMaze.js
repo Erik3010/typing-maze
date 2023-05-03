@@ -1,6 +1,6 @@
 import Player from "./Player";
 import Cell from "./Cell";
-import { getWords, random } from "./utility";
+import { getWords, radianToDegree, random } from "./utility";
 import { DIRECTIONS, DIRECTIONS_WITH_DIAGONAL, WALL } from "./constants";
 import Arrow from "./Arrow";
 
@@ -54,8 +54,12 @@ class TypingMaze {
     this.currentTypingValue = "";
 
     this.arrow = null;
+    this.finishCoordinate = {
+      x: this.playerInitialPosition.x + 3,
+      y: this.playerInitialPosition.y - 1,
+    };
 
-    this.isDevMode = false;
+    this.isDevMode = true;
   }
   async init() {
     console.log("init");
@@ -81,6 +85,8 @@ class TypingMaze {
     this.setViewBox();
     this.listener();
     this.render();
+
+    this.changeArrow();
   }
   initWordsMap() {
     const hasSameWordArounds = ({ x, y }, word) => {
@@ -255,6 +261,22 @@ class TypingMaze {
 
     await Promise.all(animationQueue);
     this.isAnimating = false;
+
+    this.changeArrow();
+  }
+  changeArrow() {
+    const { x: endX, y: endY } = this.finishCoordinate;
+    const { x, y } = this.player;
+
+    // const angle = Math.atan2(Math.sign(endY - y), Math.sign(endX - x));
+    const angleRadian = Math.atan2(endY - y, endX - x);
+    let angleDegree = radianToDegree(angleRadian);
+    if (angleDegree < 0) {
+      angleDegree += 360;
+    }
+
+    // this.arrow.animateRotate(radianToDegree(angleRadian) + 90);
+    this.arrow.animateRotate((angleDegree + 90) % 360);
   }
   draw() {
     this.drawMap();
@@ -402,6 +424,9 @@ class TypingMaze {
       ctx: this.ctx,
       width: this.cellSize,
       word: this.wordsMap[coordinate.y][coordinate.x],
+      isFinishCell: Object.keys(coordinate).every(
+        (key) => coordinate[key] === this.finishCoordinate[key]
+      ),
     });
   }
   drawMap() {
