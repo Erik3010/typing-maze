@@ -1,6 +1,6 @@
 import Player from "./Player";
 import Cell from "./Cell";
-import { getWords, radianToDegree, random } from "./utility";
+import { getWords, padString, radianToDegree, random } from "./utility";
 import { DIRECTIONS, DIRECTIONS_WITH_DIAGONAL, WALL } from "./constants";
 import Arrow from "./Arrow";
 
@@ -59,6 +59,10 @@ class TypingMaze {
       y: this.playerInitialPosition.y - 1,
     };
 
+    this.start = null;
+    this.timer = null;
+    this.timerInterval = null;
+
     this.isDevMode = true;
   }
   async init() {
@@ -82,11 +86,25 @@ class TypingMaze {
     this.availableWords = await getWords();
     this.initWordsMap();
 
+    this.initTimer();
+
     this.setViewBox();
     this.listener();
     this.render();
 
     this.changeArrow();
+  }
+  initTimer() {
+    this.start = Date.now();
+
+    const runTimer = () => {
+      const date = Date.now();
+      this.timer = Math.floor((date - this.start) / 1000);
+
+      this.timerInterval = setTimeout(runTimer, 1000);
+    };
+
+    runTimer();
   }
   initWordsMap() {
     const hasSameWordArounds = ({ x, y }, word) => {
@@ -263,6 +281,8 @@ class TypingMaze {
     this.isAnimating = false;
 
     this.changeArrow();
+
+    this.isGameFinish && this.showGameFinish();
   }
   changeArrow() {
     const { x: endX, y: endY } = this.finishCoordinate;
@@ -278,12 +298,38 @@ class TypingMaze {
     // this.arrow.animateRotate(radianToDegree(angleRadian) + 90);
     this.arrow.animateRotate((angleDegree + 90) % 360);
   }
+  showGameFinish() {
+    alert("Game finish");
+  }
+  get isGameFinish() {
+    return Object.keys(this.finishCoordinate).every(
+      (key) => this.finishCoordinate[key] === this.player[key]
+    );
+  }
   draw() {
     this.drawMap();
     this.player.draw();
     this.arrow.draw();
 
+    this.drawTimer();
+
     this.player.text = this.currentTypingValue;
+  }
+  drawTimer() {
+    const minute = Math.floor(this.timer / 60);
+    const second = this.timer % 60;
+
+    const timerString =
+      padString(minute.toString()) + ":" + padString(second.toString());
+
+    this.ctx.save();
+    this.ctx.font = "32px Arial";
+
+    const { width } = this.ctx.measureText(timerString);
+
+    this.ctx.fillStyle = "#000";
+    this.ctx.fillText(timerString, canvas.width / 2 - width / 2, 60);
+    this.ctx.restore();
   }
   initViewBoxMap() {
     const { x: centerX, y: centerY } = this.centerPoint;
