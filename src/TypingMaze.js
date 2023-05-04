@@ -299,12 +299,16 @@ class TypingMaze {
     this.arrow.animateRotate((angleDegree + 90) % 360);
   }
   showGameFinish() {
-    alert("Game finish");
-  }
-  get isGameFinish() {
-    return Object.keys(this.finishCoordinate).every(
-      (key) => this.finishCoordinate[key] === this.player[key]
-    );
+    clearTimeout(this.timerInterval);
+
+    const { minute, second } = this.formattedTimer;
+    const time = `${padString(minute.toString())}:${padString(
+      second.toString()
+    )}`;
+
+    alert(`Game finish! Time: ${time}`);
+
+    window.location.reload();
   }
   draw() {
     this.drawMap();
@@ -316,8 +320,7 @@ class TypingMaze {
     this.player.text = this.currentTypingValue;
   }
   drawTimer() {
-    const minute = Math.floor(this.timer / 60);
-    const second = this.timer % 60;
+    const { minute, second } = this.formattedTimer;
 
     const timerString =
       padString(minute.toString()) + ":" + padString(second.toString());
@@ -511,6 +514,17 @@ class TypingMaze {
   }
   isValidCoordinate({ x, y }) {
     return x >= 0 && x < this.maps[0].length && y >= 0 && y < this.maps.length;
+  }
+  get isGameFinish() {
+    return Object.keys(this.finishCoordinate).every(
+      (key) => this.finishCoordinate[key] === this.player[key]
+    );
+  }
+  get formattedTimer() {
+    return {
+      minute: Math.floor(this.timer / 60),
+      second: this.timer % 60,
+    };
   }
   get centerPoint() {
     return {
