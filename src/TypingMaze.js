@@ -84,6 +84,7 @@ class TypingMaze {
     });
 
     this.availableWords = await getWords();
+    this.initFinishFlag();
     this.initWordsMap();
 
     this.initTimer();
@@ -92,7 +93,26 @@ class TypingMaze {
     this.listener();
     this.render();
 
-    this.changeArrow();
+    this.calculateArrowAngle();
+  }
+  initFinishFlag() {
+    let y, x, isAroundPlayers;
+
+    do {
+      y = random(0, this.maps.length - 1);
+      x = random(0, this.maps[0].length - 1);
+
+      const playerBounds = 2;
+
+      isAroundPlayers =
+        (y >= this.player.y - playerBounds &&
+          y <= this.player.y + playerBounds) ||
+        (x >= this.player.x - playerBounds &&
+          x <= this.player.x + playerBounds);
+    } while (isAroundPlayers || this.maps[y][x] === WALL);
+
+    this.finishCoordinate = { y, x };
+    // console.log(x, y, this.player.x, this.player.y, isAroundPlayers);
   }
   initTimer() {
     this.start = Date.now();
@@ -280,11 +300,11 @@ class TypingMaze {
     await Promise.all(animationQueue);
     this.isAnimating = false;
 
-    this.changeArrow();
+    this.calculateArrowAngle();
 
-    this.isGameFinish && this.showGameFinish();
+    this.isGameFinish && this.finishGame();
   }
-  changeArrow() {
+  calculateArrowAngle() {
     const { x: endX, y: endY } = this.finishCoordinate;
     const { x, y } = this.player;
 
@@ -298,7 +318,7 @@ class TypingMaze {
     // this.arrow.animateRotate(radianToDegree(angleRadian) + 90);
     this.arrow.animateRotate((angleDegree + 90) % 360);
   }
-  showGameFinish() {
+  finishGame() {
     clearTimeout(this.timerInterval);
 
     const { minute, second } = this.formattedTimer;
