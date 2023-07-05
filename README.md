@@ -14,6 +14,7 @@ Simply type the words that appear adjacent to your character to move through the
 
 ## Upcoming Features
 
+- [ ] Change character image
 - [ ] Add more maps
 - [ ] Add more levels
 - [ ] Add a leaderboard to keep track of the fastest times
