@@ -1,6 +1,6 @@
 # Typing Maze
 
-![Typing Maze Preview](https://github.com/Erik3010/typing-maze/blob/master/preview.png?raw=true)
+![Typing Maze Preview](https://github.com/Erik3010/typing-maze/blob/master/preview.gif?raw=true)
 
 ## Description
 
